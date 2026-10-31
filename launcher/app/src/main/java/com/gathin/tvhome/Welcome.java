@@ -45,7 +45,10 @@ final class Welcome {
     static final float HERO_CENTRE = 0.21f;
     /** Gap between the caption's baseline area and the dock band's top edge, in dp. */
     static final float CAPTION_GAP_DP = 22;
-    /** caption_bottom: the caption's size, level with the clock's 24sp. */
+    static final String CAPTION_BOTTOM = "bottom", CAPTION_UNDER_HERO = "under_hero";
+    /** under_hero: the gap between the headline and the caption, in dp. */
+    static final float CAPTION_UNDER_GAP_DP = 14;
+    /** caption_position "bottom" and "under_hero": the caption's size, level with the clock's 24sp. */
     static final float CAPTION_BOTTOM_SP = 24;
     /** The headline's first line, as a share of the others' size. */
     static final float HERO_FIRST_LINE = 0.7f;
@@ -55,7 +58,9 @@ final class Welcome {
     /** ui_font "roboto", or null for the launcher's Outfit. */
     private HomeFont inter;
     private TextView headline, caption;
-    /** caption_bottom: the caption in the bottom status bar; null otherwise. */
+    /** caption_position "under_hero": the headline and caption as one centred block; null otherwise. */
+    private LinearLayout heroGroup;
+    /** caption_position "bottom": the caption in the bottom status bar; null otherwise. */
     private TextView bottomCaption;
     /** The PlainTextFrames round the bottom caption, the bottom clock and the weather; null when not shown. */
     private View captionFrame, clockFrame, weatherFrame;
@@ -102,7 +107,7 @@ final class Welcome {
         }
         if (!cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty()) {
             w.heroFace = "montserrat".equalsIgnoreCase(cfg.heroFont) ? w.font(R.font.montserrat_light) : null;
-            w.addHero(root, at, grid, cfg.heroText, cfg.heroCaption, cfg.captionBottom);
+            w.addHero(root, at, grid, cfg.heroText, cfg.heroCaption, cfg.captionPosition.trim().toLowerCase(Locale.ROOT));
             at = root.indexOfChild(content);
         }
         if (cfg.headerBottom) w.moveClockToBottom(root, at, cfg.dateBelowClock);
@@ -115,7 +120,8 @@ final class Welcome {
             if (w.weather != null) w.addWeather(root, root.indexOfChild(content));
         }
         // Each block drawn through a plain canvas, so High contrast text does not stroke it (PlainTextFrame).
-        if (w.headline != null) w.plain(w.headline);
+        if (w.heroGroup != null) w.plain(w.heroGroup);
+        else if (w.headline != null) w.plain(w.headline);
         if (w.bottomCaption != null) w.captionFrame = w.plain(w.bottomCaption);
         if (cfg.headerBottom) w.clockFrame = w.plain(activity.findViewById(R.id.leftBlock));
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
@@ -139,7 +145,8 @@ final class Welcome {
     // ---- hero headline and caption -------------------------------------------------------------------
 
     private void addHero(FrameLayout root, int at, RecyclerView grid, String text, String captionText,
-                         boolean captionAtBottom) {
+                         String captionPosition) {
+        boolean captionAtBottom = CAPTION_BOTTOM.equals(captionPosition);
         if (!text.isEmpty()) {
             headline = shadowed(new TextView(activity));
             headline.setTypeface(heroFace != null ? heroFace : inter != null ? inter.at(300) : font(R.font.outfit_light));
@@ -169,14 +176,27 @@ final class Welcome {
             caption.setSingleLine(true);
             caption.setIncludeFontPadding(false);
             caption.setText(captionText);
-            if (captionAtBottom) {
-                // caption_bottom: the middle column of the bottom status bar (weather, caption, clock), at the scale
-                // and weight of those blocks rather than the headline's, in a soft white with only a faint shadow.
-                caption.setTextSize(TypedValue.COMPLEX_UNIT_SP, CAPTION_BOTTOM_SP);
-                caption.setTypeface(heroFace != null ? heroFace : inter != null ? inter.at(300) : font(R.font.outfit_light));
-                caption.setTextColor(0xE0FFFFFF);
-                caption.setLetterSpacing(0.02f);
-                softShadow(caption);
+            if (CAPTION_UNDER_HERO.equals(captionPosition) && headline != null) {
+                // under_hero: right under the headline, one centred block with it, so the two stay together.
+                smallCaption(caption);
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) headline.getLayoutParams();
+                int index = root.indexOfChild(headline);
+                root.removeView(headline);
+                heroGroup = new LinearLayout(activity);
+                heroGroup.setOrientation(LinearLayout.VERTICAL);
+                heroGroup.setGravity(Gravity.CENTER_HORIZONTAL);
+                heroGroup.addView(headline, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                clp.topMargin = Math.round(CAPTION_UNDER_GAP_DP * density);
+                heroGroup.addView(caption, clp);
+                root.addView(heroGroup, index, lp);
+                caption = null;   // fades with the group, not moved on its own
+            } else if (captionAtBottom) {
+                // bottom: the middle column of the bottom status bar (weather, caption, clock), at the scale and
+                // weight of those blocks rather than the headline's.
+                smallCaption(caption);
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
                 lp.bottomMargin = Math.round(BOTTOM_MARGIN_DP * density);
@@ -205,12 +225,22 @@ final class Welcome {
                     caption.setTranslationY(-shift);
                     caption.setAlpha(alpha);
                 }
-                if (headline != null) headline.setAlpha(alpha);
+                if (heroGroup != null) heroGroup.setAlpha(alpha);
+                else if (headline != null) headline.setAlpha(alpha);
             }
         });
     }
 
-    /** caption_bottom: the caption's centre on the midpoint of the side blocks' centres, so the three read as one bar. */
+    /** The smaller caption, for "bottom" and "under_hero": light, 24sp, in a soft white with the soft shadow. */
+    private void smallCaption(TextView t) {
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, CAPTION_BOTTOM_SP);
+        t.setTypeface(heroFace != null ? heroFace : inter != null ? inter.at(300) : font(R.font.outfit_light));
+        t.setTextColor(0xE0FFFFFF);
+        t.setLetterSpacing(0.02f);
+        softShadow(t);
+    }
+
+    /** caption_position "bottom": the caption's centre on the midpoint of the side blocks' centres, so the three read as one bar. */
     private void centreBottomCaption() {
         View caption = captionFrame != null ? captionFrame : bottomCaption;
         if (caption == null || caption.getHeight() == 0) return;

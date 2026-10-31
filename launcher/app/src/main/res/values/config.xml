@@ -464,9 +464,9 @@
     <!-- "roboto": Home's text in the TV's own system sans-serif (Roboto on Android TV), each text at the weight it had in
          Outfit; nothing is bundled. Empty (the default) keeps Outfit. A theme can set "ui_font". -->
     <string name="ui_font" translatable="false"></string>
-    <!-- hero_caption centred at the bottom of Home, between the weather and the clock, instead of above the dock. Off by
-         default; a theme can set "caption_bottom". -->
-    <bool name="caption_bottom">false</bool>
+    <!-- Where hero_caption sits: empty (the default) just above the dock band; "bottom" centred in the bottom strip,
+         between the weather and the clock; "under_hero" right under the headline. A theme can set "caption_position". -->
+    <string name="caption_position" translatable="false"></string>
     <!-- The top-bar buttons 34dp tall instead of 42dp, with 13sp text, so they draw less of the eye. Off by default; a
          theme can set "small_pills". -->
     <bool name="small_pills">false</bool>

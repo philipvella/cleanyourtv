@@ -157,8 +157,8 @@ final class Config {
     final boolean pillLabelsOnly;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
-    /** caption_bottom: hero_caption centred in the bottom strip instead of above the dock. */
-    final boolean captionBottom;
+    /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
+    final String captionPosition;
     /** small_pills: the top-bar buttons 34dp tall instead of 42dp, with smaller text. */
     final boolean smallPills;
     /** ui_font: "roboto" for Home's text in the system sans-serif (HomeFont); empty keeps Outfit. */
@@ -301,9 +301,9 @@ final class Config {
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly,
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
-                   boolean captionBottom, boolean smallPills, String heroFont) {
+                   String captionPosition, boolean smallPills, String heroFont) {
         this.heroFont = heroFont;
-        this.captionBottom = captionBottom;
+        this.captionPosition = captionPosition;
         this.smallPills = smallPills;
         this.uiFont = uiFont;
         this.heroText = heroText;
@@ -503,7 +503,7 @@ final class Config {
         boolean pillLabelsOnly = res.getBoolean(R.bool.pill_labels_only);
         String weatherSource = res.getString(R.string.weather_source).trim();
         String uiFont = res.getString(R.string.ui_font).trim();
-        boolean captionBottom = res.getBoolean(R.bool.caption_bottom);
+        String captionPosition = res.getString(R.string.caption_position).trim();
         boolean smallPills = res.getBoolean(R.bool.small_pills);
         String heroFont = res.getString(R.string.hero_font).trim();
         boolean library = res.getBoolean(R.bool.app_library);
@@ -621,7 +621,7 @@ final class Config {
             pillLabelsOnly = bool(json, "pill_labels_only", pillLabelsOnly);
             weatherSource = string(json, "weather_source", weatherSource);
             uiFont = string(json, "ui_font", uiFont);
-            captionBottom = bool(json, "caption_bottom", captionBottom);
+            captionPosition = string(json, "caption_position", captionPosition);
             smallPills = bool(json, "small_pills", smallPills);
             heroFont = string(json, "hero_font", heroFont);
             library = bool(json, "app_library", library);
@@ -736,7 +736,7 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
-                pillLabelsOnly, weatherSource, uiFont, captionBottom, smallPills, heroFont);
+                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont);
     }
 
     /**

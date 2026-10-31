@@ -214,7 +214,7 @@ public final class LauncherSettingsActivity extends Activity {
     private void showSeasonPicker() {
         String[] names = getResources().getStringArray(R.array.season_names);
         String[] labels = new String[names.length + 2];
-        labels[0] = getString(R.string.season_auto);
+        labels[0] = autoLabel();
         labels[1] = getString(R.string.off);
         System.arraycopy(names, 0, labels, 2, names.length);
         String current = Config.load(this).seasonalScenes.trim().toLowerCase(java.util.Locale.ROOT);
@@ -243,10 +243,24 @@ public final class LauncherSettingsActivity extends Activity {
                 .show();
     }
 
+    /** "Auto (today: Halloween)": what Auto plays today, the household's own dates (seasonal_dates) included. */
+    private String autoLabel() {
+        Config config = Config.load(this);
+        Season.Scene today = Season.at(java.time.LocalDate.now(), Season.parseDates(config.seasonalDates));
+        return getString(R.string.season_auto, sceneName(today));
+    }
+
+    /** A scene's name as the list shows it. */
+    private String sceneName(Season.Scene s) {
+        String[] names = getResources().getStringArray(R.array.season_names);
+        for (int i = 0; i < Season.PICKABLE.length; i++) if (Season.PICKABLE[i] == s) return names[i];
+        return getString(R.string.off);
+    }
+
     /** What the Seasonal scenes row says: Auto, Off or the scene's name. */
     private String seasonLabel() {
         String current = Config.load(this).seasonalScenes.trim().toLowerCase(java.util.Locale.ROOT);
-        if (Season.AUTO.equals(current)) return getString(R.string.season_auto);
+        if (Season.AUTO.equals(current)) return autoLabel();
         Season.Scene s = Season.pick(current, java.time.LocalDate.now());
         String[] names = getResources().getStringArray(R.array.season_names);
         for (int i = 0; i < Season.PICKABLE.length; i++) if (Season.PICKABLE[i] == s) return names[i];

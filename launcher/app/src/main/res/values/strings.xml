@@ -61,7 +61,7 @@
     <!-- seasonal_scenes, in Launcher settings. English only for now: the row shows only on a theme that sets the key. -->
     <string name="season_label" translatable="false">Seasonal scenes</string>
     <string name="season_state" translatable="false">Seasonal scenes: %1$s</string>
-    <string name="season_auto" translatable="false">Auto (follows the date)</string>
+    <string name="season_auto" translatable="false">Auto (today: %1$s)</string>
     <string-array name="season_names" translatable="false">
         <item>Autumn leaves</item>
         <item>Halloween</item>

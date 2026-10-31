@@ -197,6 +197,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private GameDay gameDay;
     /** hero_text, hero_caption, header_bottom, pill_labels_only, weather_source; null when all are off. */
     private Welcome welcome;
+    /** seasonal_scenes: the season's animated scene; null when the key is off or motion is reduced. */
+    private SeasonView seasonView;
+    private String seasonalScenes = "";
     /** ui_font "inter": every text inflated on Home is given the system sans-serif (onCreateView); null keeps Outfit. */
     private HomeFont homeFont;
     /** pill_labels_only: the Wi-Fi pill never gets its icon back. */
@@ -423,6 +426,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (festive) updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
+            // seasonal_scenes: Home left on screen past midnight moves on to the new day's scene by itself.
+            if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now()));
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -506,6 +511,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambientGlow = cfg.ambientGlow;
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
+        // seasonal_scenes: above the wallpaper, sky and glow, under the text and tiles. Not made at all when off.
+        seasonalScenes = cfg.seasonalScenes;
+        if (!seasonalScenes.isEmpty() && cfg.animations && !cfg.reducedMotion) {
+            seasonView = new SeasonView(this);
+            root.addView(seasonView, root.indexOfChild(ambient) + 1, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
@@ -1082,6 +1094,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (showStats) startStats();
         if (gameDay != null) gameDay.start();
         if (welcome != null) welcome.start();
+        // The scene is picked again each time Home comes back, so it changes over on its own as the dates pass.
+        if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now()));
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -1264,6 +1278,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         stopStats();
         if (gameDay != null) gameDay.stop();
         if (welcome != null) welcome.stop();
+        if (seasonView != null) seasonView.stop();
         handler.removeCallbacks(turnTick);
         if (lamp != null) lamp.stop();
         cancelPendingFocusScroll();

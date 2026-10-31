@@ -155,6 +155,8 @@ final class Config {
     final boolean headerBottom;
     /** pill_labels_only: the top pills as text-only rounded chips, no icons. */
     final boolean pillLabelsOnly;
+    /** seasonal_scenes: "auto" for the season's animated scene on Home (Season, SeasonView), a scene's name to force it; empty = off. */
+    final String seasonalScenes;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -301,7 +303,8 @@ final class Config {
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly,
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
-                   String captionPosition, boolean smallPills, String heroFont) {
+                   String captionPosition, boolean smallPills, String heroFont, String seasonalScenes) {
+        this.seasonalScenes = seasonalScenes;
         this.heroFont = heroFont;
         this.captionPosition = captionPosition;
         this.smallPills = smallPills;
@@ -506,6 +509,7 @@ final class Config {
         String captionPosition = res.getString(R.string.caption_position).trim();
         boolean smallPills = res.getBoolean(R.bool.small_pills);
         String heroFont = res.getString(R.string.hero_font).trim();
+        String seasonalScenes = res.getString(R.string.seasonal_scenes).trim();
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -624,6 +628,7 @@ final class Config {
             captionPosition = string(json, "caption_position", captionPosition);
             smallPills = bool(json, "small_pills", smallPills);
             heroFont = string(json, "hero_font", heroFont);
+            seasonalScenes = string(json, "seasonal_scenes", seasonalScenes);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -736,7 +741,7 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
-                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont);
+                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes);
     }
 
     /**

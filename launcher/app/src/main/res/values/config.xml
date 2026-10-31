@@ -473,6 +473,14 @@
     <!-- "montserrat": hero_text and hero_caption in the bundled Montserrat Light (Latin, about 9 KB). Empty (the default)
          draws them in the launcher's font and never loads Montserrat. A theme can set "hero_font". -->
     <string name="hero_font" translatable="false"></string>
+    <!-- An animated scene for the time of year between the wallpaper and Home's text and tiles. "auto" picks it from the
+         date (UK calendar): autumn leaves from September, Halloween ghosts and pumpkins from 25 October, fireworks on
+         5 November and at New Year, Christmas snow with Father Christmas's sleigh from 1 to 26 December, winter snow,
+         Valentine's hearts from 7 to 14 February, spring blossom from March and summer fireflies from June. A scene's
+         name ("christmas", "autumn", "halloween", "fireworks", "winter", "valentine", "spring", "summer") shows that one
+         all year. Empty (the default) is off; reduced_motion or animations off also keep it off. A theme can set
+         "seasonal_scenes". -->
+    <string name="seasonal_scenes" translatable="false"></string>
 
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
          horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100

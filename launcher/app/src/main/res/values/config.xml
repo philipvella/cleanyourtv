@@ -481,6 +481,10 @@
          all year. Empty (the default) is off; reduced_motion or animations off also keep it off. A theme can set
          "seasonal_scenes". -->
     <string name="seasonal_scenes" translatable="false"></string>
+    <!-- The household's own days for seasonal_scenes "auto", as "MM-DD=scene": "04-21=birthday" (balloons and confetti),
+         "04-16=anniversary" (rose petals and gold sparkles), or any scene's name. They win over the calendar on that
+         day. Empty by default. A theme can set "seasonal_dates". -->
+    <string-array name="seasonal_dates" translatable="false"></string-array>
 
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
          horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100

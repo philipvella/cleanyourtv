@@ -58,6 +58,28 @@
     <string name="wallpaper_none">None</string>
     <string name="wallpaper_applied">Wallpaper changed</string>
     <string name="wallpaper_theme_default">Theme default</string>
+    <!-- seasonal_scenes, in Launcher settings. English only for now: the row shows only on a theme that sets the key. -->
+    <string name="season_label" translatable="false">Seasonal scenes</string>
+    <string name="season_state" translatable="false">Seasonal scenes: %1$s</string>
+    <string name="season_auto" translatable="false">Auto (follows the date)</string>
+    <string-array name="season_names" translatable="false">
+        <item>Autumn leaves</item>
+        <item>Halloween</item>
+        <item>Fireworks</item>
+        <item>Christmas</item>
+        <item>Winter snow</item>
+        <item>Valentine\'s hearts</item>
+        <item>Spring blossom</item>
+        <item>Summer fireflies</item>
+        <item>New Year</item>
+        <item>Pancake Day</item>
+        <item>St Patrick\'s Day</item>
+        <item>Easter</item>
+        <item>Mother\'s Day</item>
+        <item>Father\'s Day</item>
+        <item>Birthday</item>
+        <item>Anniversary</item>
+    </string-array>
     <string name="animations_state">Animations: %1$s</string>
     <string name="advanced_effects">Advanced effects</string>
     <string name="advanced_effects_state">Advanced effects: %1$s</string>

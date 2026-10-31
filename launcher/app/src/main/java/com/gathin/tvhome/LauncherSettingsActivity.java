@@ -33,6 +33,8 @@ public final class LauncherSettingsActivity extends Activity {
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
     private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private TextView wallpaperChoice;
+    /** seasonal_scenes: Auto, Off or one scene; null when the theme has no such key. */
+    private TextView seasonChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -108,6 +110,11 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        if (!config.seasonalScenes.isEmpty()) {
+            seasonChoice = findViewById(R.id.seasonChoice);
+            seasonChoice.setVisibility(View.VISIBLE);
+            seasonChoice.setOnClickListener(v -> showSeasonPicker());
+        }
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -140,7 +147,7 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).remove(Config.SEASON_CHOICE_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -201,6 +208,49 @@ public final class LauncherSettingsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    /** seasonal_scenes: Auto (by the date), Off, or one scene all year; Theme default forgets the pick. */
+    private void showSeasonPicker() {
+        String[] names = getResources().getStringArray(R.array.season_names);
+        String[] labels = new String[names.length + 2];
+        labels[0] = getString(R.string.season_auto);
+        labels[1] = getString(R.string.off);
+        System.arraycopy(names, 0, labels, 2, names.length);
+        String current = Config.load(this).seasonalScenes.trim().toLowerCase(java.util.Locale.ROOT);
+        int checked = Season.AUTO.equals(current) ? 0 : -1;
+        if (checked < 0) {
+            Season.Scene s = Season.pick(current, java.time.LocalDate.now());
+            checked = 1;   // anything that is no scene is off
+            for (int i = 0; i < Season.PICKABLE.length; i++) if (Season.PICKABLE[i] == s) checked = i + 2;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.season_label)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    String value = which == 0 ? Season.AUTO : which == 1 ? Season.OFF
+                            : Season.keyOf(Season.PICKABLE[which - 2]);
+                    choices.edit().putString(Config.SEASON_CHOICE_KEY, value).apply();
+                    changed();
+                    refresh();
+                })
+                .setNeutralButton(R.string.wallpaper_theme_default, (dialog, which) -> {
+                    choices.edit().remove(Config.SEASON_CHOICE_KEY).apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** What the Seasonal scenes row says: Auto, Off or the scene's name. */
+    private String seasonLabel() {
+        String current = Config.load(this).seasonalScenes.trim().toLowerCase(java.util.Locale.ROOT);
+        if (Season.AUTO.equals(current)) return getString(R.string.season_auto);
+        Season.Scene s = Season.pick(current, java.time.LocalDate.now());
+        String[] names = getResources().getStringArray(R.array.season_names);
+        for (int i = 0; i < Season.PICKABLE.length; i++) if (Season.PICKABLE[i] == s) return names[i];
+        return getString(R.string.off);
     }
 
     /** Off, then every app with a TV entry point by name. Saved at once; it is read on the next boot. */
@@ -298,6 +348,7 @@ public final class LauncherSettingsActivity extends Activity {
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
+        if (seasonChoice != null) seasonChoice.setText(getString(R.string.season_state, seasonLabel()));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
@@ -305,7 +356,7 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(OpenOnStart.KEY);
+                || choices.contains(OpenOnStart.KEY) || choices.contains(Config.SEASON_CHOICE_KEY);
     }
 
     private void open(Intent intent) {

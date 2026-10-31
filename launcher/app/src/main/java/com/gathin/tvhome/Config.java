@@ -43,6 +43,8 @@ final class Config {
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    /** seasonal_scenes chosen in Launcher settings: "auto", "off" or a scene's name; wins over the theme's. */
+    static final String SEASON_CHOICE_KEY = "seasonal_scenes";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -157,6 +159,8 @@ final class Config {
     final boolean pillLabelsOnly;
     /** seasonal_scenes: "auto" for the season's animated scene on Home (Season, SeasonView), a scene's name to force it; empty = off. */
     final String seasonalScenes;
+    /** seasonal_dates: the household's own days, "MM-DD=scene" ("04-21=birthday"); Season.parseDates. */
+    final List<String> seasonalDates;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -303,7 +307,9 @@ final class Config {
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly,
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
-                   String captionPosition, boolean smallPills, String heroFont, String seasonalScenes) {
+                   String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
+                   List<String> seasonalDates) {
+        this.seasonalDates = Collections.unmodifiableList(seasonalDates);
         this.seasonalScenes = seasonalScenes;
         this.heroFont = heroFont;
         this.captionPosition = captionPosition;
@@ -510,6 +516,7 @@ final class Config {
         boolean smallPills = res.getBoolean(R.bool.small_pills);
         String heroFont = res.getString(R.string.hero_font).trim();
         String seasonalScenes = res.getString(R.string.seasonal_scenes).trim();
+        List<String> seasonalDates = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.seasonal_dates)));
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -629,6 +636,7 @@ final class Config {
             smallPills = bool(json, "small_pills", smallPills);
             heroFont = string(json, "hero_font", heroFont);
             seasonalScenes = string(json, "seasonal_scenes", seasonalScenes);
+            seasonalDates = stringList(json, "seasonal_dates", seasonalDates);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -701,6 +709,9 @@ final class Config {
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
         int dockOpacity = json == null ? 100 : integer(json, "dock_opacity", 100, 30, 100);
         dockOpacity = chosenDockOpacity(choices.getInt(DOCK_OPACITY_KEY, -1), dockOpacity);
+        // seasonal_scenes: the on-TV pick (Auto, Off or a scene) wins while the theme has the key at all.
+        String seasonChoice = choices.getString(SEASON_CHOICE_KEY, null);
+        if (seasonChoice != null && !seasonalScenes.isEmpty()) seasonalScenes = seasonChoice;
         String wallpaperOrder = json == null ? WallpaperRotation.ORDER_SHUFFLE
                 : string(json, "wallpaper_order", WallpaperRotation.ORDER_SHUFFLE);
         // An unknown order must not silently change how an existing collection rotates.
@@ -741,7 +752,7 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
-                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes);
+                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates);
     }
 
     /**
@@ -785,12 +796,12 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(SEASON_CHOICE_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
-                    .putString(THEME_SIGNATURE_KEY, signature).commit();
+                    .remove(SEASON_CHOICE_KEY).putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
 

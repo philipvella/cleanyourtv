@@ -17,16 +17,22 @@ import com.gathin.tvhome.Season.Scene;
 import java.util.Random;
 
 /**
- * seasonal_scenes: a full-screen layer between the wallpaper and Home's text and tiles that plays the season's scene
- * (Season): falling autumn leaves, Halloween ghosts and glowing pumpkins, fireworks, Christmas snow with Father
- * Christmas's sleigh crossing now and then, winter snow, Valentine's hearts, spring blossom or summer fireflies.
- * Everything is drawn in code (Halloween reuses the launcher's own ghost and pumpkin pictures), at about 30 frames a
- * second and only between {@link #start} and {@link #stop}; nothing is allocated per frame.
+ * seasonal_scenes: a full-screen layer between the wallpaper and Home's text and tiles that plays the day's scene
+ * (Season): autumn leaves, Halloween ghosts and glowing pumpkins, fireworks, Christmas snow with Father Christmas's
+ * sleigh, winter snow, Valentine's hearts, spring blossom, summer fireflies, New Year fireworks and gold confetti,
+ * Pancake Day pancakes, St Patrick's shamrocks, Easter eggs, Mothering Sunday flowers, Father's Day ties, birthday
+ * balloons and confetti, anniversary rose petals and gold sparkles. Everything is drawn in code (Halloween reuses the
+ * launcher's own ghost and pumpkin pictures), at about 30 frames a second and only between {@link #start} and
+ * {@link #stop}; nothing is allocated per frame.
  */
 final class SeasonView extends View {
     private static final long FRAME_MS = 33;
     private static final double TAU = Math.PI * 2;
     private static final int MAX = 64;
+
+    // Particle kinds; a scene uses one or two.
+    private static final int LEAF = 0, PETAL = 1, FLAKE = 2, HEART = 3, FIREFLY = 4, GHOST = 5, CONFETTI = 6,
+            PANCAKE = 7, SHAMROCK = 8, EGG = 9, FLOWER = 10, TIE = 11, BALLOON = 12, ROSE = 13, SPARKLE = 14;
 
     private final float dp;
     private final Random rnd = new Random();
@@ -34,7 +40,8 @@ final class SeasonView extends View {
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Path leaf = new Path(), heart = new Path(), petal = new Path();
+    private final Path leaf = new Path(), heart = new Path(), petal = new Path(), egg = new Path(), tie = new Path(),
+            zigzag = new Path(), rose = new Path();
     private final RectF oval = new RectF();
 
     private Scene scene = Scene.NONE;
@@ -44,11 +51,12 @@ final class SeasonView extends View {
     private long startMs, lastMs;
     private Bitmap ghost, pumpkin;
 
-    // Particles: position, speed, size, phases, colour; their meaning depends on the scene.
     private int count;
+    private final int[] kind = new int[MAX], colour = new int[MAX];
     private final float[] x = new float[MAX], y = new float[MAX], vx = new float[MAX], vy = new float[MAX],
             size = new float[MAX], phase = new float[MAX], spin = new float[MAX], rot = new float[MAX];
-    private final int[] colour = new int[MAX];
+    /** Which kinds a scene is made of: kindA for indices below {@code split}, kindB for the rest. */
+    private int split, kindA, kindB;
 
     // Fireworks: bursts of sparks.
     private static final int BURSTS = 5, SPARKS = 36;
@@ -64,6 +72,13 @@ final class SeasonView extends View {
     private static final int[] BLOSSOM = {0xFFF8BBD0, 0xFFF48FB1, 0xFFFCE4EC, 0xFFFFFFFF};
     private static final int[] HEARTS = {0xFFE53950, 0xFFFF6F91, 0xFFFF8FA3, 0xFFD81B60};
     private static final int[] FIREWORK = {0xFFFFD54F, 0xFFFF5252, 0xFF69F0AE, 0xFF40C4FF, 0xFFE040FB, 0xFFFFFFFF};
+    private static final int[] GOLD = {0xFFFFD54F, 0xFFFFE082, 0xFFFFC107, 0xFFFFF8E1, 0xFFE6B800};
+    private static final int[] PARTY = {0xFFFF5252, 0xFFFFD54F, 0xFF69F0AE, 0xFF40C4FF, 0xFFE040FB, 0xFFFF9100};
+    private static final int[] GREENS = {0xFF2E7D32, 0xFF43A047, 0xFF66BB6A, 0xFF1B5E20};
+    private static final int[] PASTEL = {0xFFF8BBD0, 0xFFB3E5FC, 0xFFFFF59D, 0xFFC8E6C9, 0xFFD1C4E9, 0xFFFFCCBC};
+    private static final int[] MUM = {0xFFF48FB1, 0xFFCE93D8, 0xFFFFAB91, 0xFFF06292, 0xFFFFF59D};
+    private static final int[] TIES = {0xFF1E3A8A, 0xFF7F1D1D, 0xFF14532D, 0xFF0E7490, 0xFF374151};
+    private static final int[] ROSES = {0xFFB71C1C, 0xFFD32F2F, 0xFFC2185B, 0xFFE57373};
 
     private final Runnable frame = new Runnable() {
         @Override
@@ -80,7 +95,7 @@ final class SeasonView extends View {
         setFocusable(false);
         setClickable(false);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-        // Unit shapes, scaled per particle.
+        // Unit shapes, about one unit across, scaled per particle.
         leaf.moveTo(0, -0.5f);
         leaf.cubicTo(0.38f, -0.3f, 0.32f, 0.3f, 0, 0.5f);
         leaf.cubicTo(-0.32f, 0.3f, -0.38f, -0.3f, 0, -0.5f);
@@ -90,6 +105,30 @@ final class SeasonView extends View {
         heart.cubicTo(0.3f, -0.6f, 0.6f, -0.05f, 0, 0.35f);
         heart.close();
         petal.addOval(new RectF(-0.5f, -0.3f, 0.5f, 0.3f), Path.Direction.CW);
+        // An egg: rounder at the bottom.
+        egg.moveTo(0, -0.5f);
+        egg.cubicTo(0.3f, -0.5f, 0.38f, 0.05f, 0.36f, 0.18f);
+        egg.cubicTo(0.34f, 0.42f, 0.18f, 0.5f, 0, 0.5f);
+        egg.cubicTo(-0.18f, 0.5f, -0.34f, 0.42f, -0.36f, 0.18f);
+        egg.cubicTo(-0.38f, 0.05f, -0.3f, -0.5f, 0, -0.5f);
+        egg.close();
+        zigzag.moveTo(-0.37f, 0.05f);
+        for (int i = 1; i <= 8; i++) zigzag.lineTo(-0.37f + i * 0.0925f, i % 2 == 1 ? -0.07f : 0.05f);
+        // A necktie: the knot, then the blade widening to a point.
+        tie.moveTo(-0.1f, -0.5f);
+        tie.lineTo(0.1f, -0.5f);
+        tie.lineTo(0.07f, -0.36f);
+        tie.lineTo(0.2f, 0.32f);
+        tie.lineTo(0, 0.5f);
+        tie.lineTo(-0.2f, 0.32f);
+        tie.lineTo(-0.07f, -0.36f);
+        tie.close();
+        // A rose petal: a rounded cup with a notch.
+        rose.moveTo(0, 0.5f);
+        rose.cubicTo(-0.55f, 0.2f, -0.5f, -0.45f, -0.12f, -0.42f);
+        rose.quadTo(0, -0.3f, 0.12f, -0.42f);
+        rose.cubicTo(0.5f, -0.45f, 0.55f, 0.2f, 0, 0.5f);
+        rose.close();
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeCap(Paint.Cap.ROUND);
     }
@@ -139,16 +178,26 @@ final class SeasonView extends View {
         ready = true;
         startMs = SystemClock.uptimeMillis();
         int w = Math.max(1, getWidth()), h = Math.max(1, getHeight());
+        kindB = -1;
         switch (s) {
-            case AUTUMN: count = 14; break;
-            case SPRING: count = 22; break;
-            case WINTER: count = 60; break;
-            case CHRISTMAS: count = 48; break;
-            case VALENTINE: count = 14; break;
-            case SUMMER: count = 18; break;
-            case HALLOWEEN: count = 5; break;
+            case AUTUMN: kindA = LEAF; count = 14; break;
+            case SPRING: kindA = PETAL; count = 22; break;
+            case WINTER: kindA = FLAKE; count = 60; break;
+            case CHRISTMAS: kindA = FLAKE; count = 48; break;
+            case VALENTINE: kindA = HEART; count = 14; break;
+            case SUMMER: kindA = FIREFLY; count = 18; break;
+            case HALLOWEEN: kindA = GHOST; count = 5; break;
+            case NEW_YEAR: kindA = CONFETTI; count = 36; break;
+            case PANCAKE_DAY: kindA = PANCAKE; count = 9; break;
+            case ST_PATRICKS: kindA = SHAMROCK; count = 16; break;
+            case EASTER: kindA = EGG; count = 12; break;
+            case MOTHERS_DAY: kindA = FLOWER; count = 16; break;
+            case FATHERS_DAY: kindA = TIE; count = 12; break;
+            case BIRTHDAY: kindA = BALLOON; kindB = CONFETTI; split = 9; count = 45; break;
+            case ANNIVERSARY: kindA = ROSE; kindB = SPARKLE; split = 16; count = 36; break;
             default: count = 0;
         }
+        if (kindB < 0) split = count;
         for (int i = 0; i < count; i++) spawn(i, w, h, true);
         for (int b = 0; b < BURSTS; b++) bt[b] = -1;
         nextBurst = 0.5f;
@@ -159,56 +208,114 @@ final class SeasonView extends View {
         }
     }
 
+    /** A falling particle: starts above the top edge, or anywhere on the first frame. */
+    private void falling(int i, int h, boolean anywhere, float speedDp, float spreadDp, float swayDp) {
+        y[i] = anywhere ? rnd.nextFloat() * h : -40 * dp;
+        vy[i] = (speedDp + rnd.nextFloat() * spreadDp) * dp;
+        vx[i] = (swayDp + rnd.nextFloat() * swayDp) * dp;
+    }
+
+    /** A rising particle: starts below the bottom edge, or anywhere on the first frame. */
+    private void rising(int i, int h, boolean anywhere, float speedDp, float spreadDp, float swayDp) {
+        y[i] = anywhere ? rnd.nextFloat() * h : h + 60 * dp;
+        vy[i] = -(speedDp + rnd.nextFloat() * spreadDp) * dp;
+        vx[i] = (swayDp + rnd.nextFloat() * swayDp) * dp;
+    }
+
+    private int any(int[] palette) {
+        return palette[rnd.nextInt(palette.length)];
+    }
+
     /** A new particle; {@code anywhere} scatters it over the screen (the first frame), else it enters at the edge. */
     private void spawn(int i, int w, int h, boolean anywhere) {
+        int k = i < split ? kindA : kindB;
+        kind[i] = k;
         x[i] = rnd.nextFloat() * w;
         phase[i] = (float) (rnd.nextFloat() * TAU);
         rot[i] = rnd.nextFloat() * 360;
-        switch (scene) {
-            case AUTUMN:
-                y[i] = anywhere ? rnd.nextFloat() * h : -30 * dp;
-                vy[i] = (28 + rnd.nextFloat() * 30) * dp;
-                vx[i] = (18 + rnd.nextFloat() * 22) * dp;            // sway amplitude
+        spin[i] = (rnd.nextBoolean() ? 1 : -1) * (30 + rnd.nextFloat() * 60);
+        switch (k) {
+            case LEAF:
+                falling(i, h, anywhere, 28, 30, 18);
                 size[i] = (18 + rnd.nextFloat() * 14) * dp;
-                spin[i] = (rnd.nextBoolean() ? 1 : -1) * (30 + rnd.nextFloat() * 60);
-                colour[i] = AUTUMN[rnd.nextInt(AUTUMN.length)];
+                colour[i] = any(AUTUMN);
                 break;
-            case SPRING:
-                y[i] = anywhere ? rnd.nextFloat() * h : -20 * dp;
-                vy[i] = (20 + rnd.nextFloat() * 22) * dp;
-                vx[i] = (16 + rnd.nextFloat() * 20) * dp;
+            case PETAL:
+                falling(i, h, anywhere, 20, 22, 16);
                 size[i] = (8 + rnd.nextFloat() * 7) * dp;
-                spin[i] = (rnd.nextBoolean() ? 1 : -1) * (40 + rnd.nextFloat() * 80);
-                colour[i] = BLOSSOM[rnd.nextInt(BLOSSOM.length)];
+                spin[i] *= 1.5f;
+                colour[i] = any(BLOSSOM);
                 break;
-            case WINTER: case CHRISTMAS:
-                y[i] = anywhere ? rnd.nextFloat() * h : -8 * dp;
+            case FLAKE:
                 size[i] = (1.2f + rnd.nextFloat() * 2.8f) * dp;
-                vy[i] = (14 + size[i] / dp * 9 + rnd.nextFloat() * 10) * dp;   // bigger flakes, nearer, faster
-                vx[i] = (6 + rnd.nextFloat() * 14) * dp;
+                falling(i, h, anywhere, 14 + size[i] / dp * 9, 10, 6);   // bigger flakes, nearer, faster
                 colour[i] = (int) (120 + rnd.nextFloat() * 120) << 24 | 0xFFFFFF;
                 break;
-            case VALENTINE:
-                y[i] = anywhere ? rnd.nextFloat() * h : h + 30 * dp;
-                vy[i] = -(18 + rnd.nextFloat() * 20) * dp;          // rising
-                vx[i] = (10 + rnd.nextFloat() * 18) * dp;
+            case HEART:
+                rising(i, h, anywhere, 18, 20, 10);
                 size[i] = (16 + rnd.nextFloat() * 16) * dp;
-                spin[i] = 0;
-                colour[i] = HEARTS[rnd.nextInt(HEARTS.length)];
+                colour[i] = any(HEARTS);
                 break;
-            case SUMMER:
+            case FIREFLY:
                 y[i] = rnd.nextFloat() * h;                          // home position; fireflies wander round it
                 vx[i] = (20 + rnd.nextFloat() * 50) * dp;            // wander reach
                 vy[i] = 0.15f + rnd.nextFloat() * 0.35f;             // wander speed
                 spin[i] = 0.6f + rnd.nextFloat() * 1.4f;             // pulse speed
                 size[i] = (1.8f + rnd.nextFloat() * 1.4f) * dp;
                 break;
-            case HALLOWEEN:
-                // Ghosts rise slowly through the screen, swaying; they enter from below.
-                y[i] = anywhere ? h * (0.3f + rnd.nextFloat() * 0.7f) : h + 60 * dp;
-                vy[i] = -(16 + rnd.nextFloat() * 14) * dp;
-                vx[i] = (20 + rnd.nextFloat() * 30) * dp;
+            case GHOST:
+                rising(i, h, anywhere, 16, 14, 20);
+                if (anywhere) y[i] = h * (0.3f + rnd.nextFloat() * 0.7f);
                 size[i] = (40 + rnd.nextFloat() * 22) * dp;
+                break;
+            case CONFETTI:
+                falling(i, h, anywhere, 40, 40, 14);
+                size[i] = (5 + rnd.nextFloat() * 4) * dp;
+                spin[i] *= 4;
+                colour[i] = scene == Scene.NEW_YEAR ? any(GOLD) : any(PARTY);
+                break;
+            case PANCAKE:
+                falling(i, h, anywhere, 22, 18, 24);
+                size[i] = (34 + rnd.nextFloat() * 18) * dp;
+                spin[i] = 0.5f + rnd.nextFloat() * 0.7f;             // flips per second
+                break;
+            case SHAMROCK:
+                falling(i, h, anywhere, 24, 22, 18);
+                size[i] = (16 + rnd.nextFloat() * 12) * dp;
+                colour[i] = any(GREENS);
+                break;
+            case EGG:
+                falling(i, h, anywhere, 20, 16, 16);
+                size[i] = (26 + rnd.nextFloat() * 14) * dp;
+                colour[i] = any(PASTEL);
+                break;
+            case FLOWER:
+                falling(i, h, anywhere, 18, 18, 18);
+                size[i] = (16 + rnd.nextFloat() * 12) * dp;
+                colour[i] = any(MUM);
+                break;
+            case TIE:
+                falling(i, h, anywhere, 24, 20, 20);
+                size[i] = (30 + rnd.nextFloat() * 16) * dp;
+                colour[i] = any(TIES);
+                break;
+            case BALLOON:
+                rising(i, h, anywhere, 24, 22, 10);
+                size[i] = (34 + rnd.nextFloat() * 16) * dp;
+                colour[i] = any(PARTY);
+                break;
+            case ROSE:
+                falling(i, h, anywhere, 18, 18, 18);
+                size[i] = (12 + rnd.nextFloat() * 9) * dp;
+                colour[i] = any(ROSES);
+                break;
+            case SPARKLE:
+                y[i] = rnd.nextFloat() * h;
+                vx[i] = (10 + rnd.nextFloat() * 30) * dp;
+                vy[i] = 0.1f + rnd.nextFloat() * 0.25f;
+                spin[i] = 0.8f + rnd.nextFloat() * 1.6f;
+                size[i] = (2 + rnd.nextFloat() * 2.5f) * dp;
+                colour[i] = any(GOLD);
                 break;
             default:
                 break;
@@ -223,61 +330,211 @@ final class SeasonView extends View {
         lastMs = now;
         float t = (now - startMs) / 1000f;
         int w = getWidth(), h = getHeight();
-        switch (scene) {
-            case AUTUMN: drawFalling(c, t, dt, w, h, leaf); break;
-            case SPRING: drawFalling(c, t, dt, w, h, petal); break;
-            case WINTER: drawSnow(c, t, dt, w, h); break;
-            case CHRISTMAS:
-                drawSnow(c, t, dt, w, h);
-                drawSleigh(c, t, w, h);
+        if (scene == Scene.HALLOWEEN) drawPumpkins(c, t, w, h);
+        if (scene == Scene.FIREWORKS || scene == Scene.NEW_YEAR) drawFireworks(c, t, w, h);
+        fill.setStyle(Paint.Style.FILL);
+        for (int i = 0; i < count; i++) {
+            if (kind[i] != FIREFLY && kind[i] != SPARKLE) {
+                y[i] += vy[i] * dt;
+                rot[i] += spin[i] * dt;
+                boolean gone = vy[i] > 0 ? y[i] > h + 60 * dp : y[i] < -size[i] * 2.5f;
+                if (gone) spawn(i, w, h, false);
+            }
+            drawParticle(c, i, t, h);
+        }
+        if (scene == Scene.CHRISTMAS) drawSleigh(c, t, w, h);
+    }
+
+    private void drawParticle(Canvas c, int i, float t, int h) {
+        float sway = (float) Math.sin(t * 0.9f + phase[i]) * vx[i];
+        float px = x[i] + sway, py = y[i];
+        int k = kind[i];
+        switch (k) {
+            case LEAF: case PETAL: case SHAMROCK: case FLOWER: case ROSE: case EGG: case TIE: {
+                // Leaves and petals flutter (the width follows a slow cosine); eggs and ties rock gently instead.
+                boolean rocks = k == EGG || k == TIE;
+                float flip = rocks ? 1f : 0.35f + 0.65f * Math.abs((float) Math.cos(t * 1.3f + phase[i]));
+                c.save();
+                c.translate(px, py);
+                c.rotate(rocks ? (float) Math.sin(t * 0.8f + phase[i]) * 25 : rot[i]);
+                c.scale(size[i] * flip, size[i]);
+                drawShape(c, k, colour[i]);
+                c.restore();
                 break;
-            case VALENTINE: drawHearts(c, t, dt, w, h); break;
-            case SUMMER: drawFireflies(c, t, w, h); break;
-            case HALLOWEEN: drawHalloween(c, t, dt, w, h); break;
-            case FIREWORKS: drawFireworks(c, t, w, h); break;
-            default: break;
+            }
+            case FLAKE:
+                fill.setColor(colour[i]);
+                c.drawCircle(x[i] + (float) Math.sin(t * 0.7f + phase[i]) * vx[i], py, size[i], fill);
+                break;
+            case HEART: {
+                float fade = Math.min(1f, Math.max(0f, y[i] / (h * 0.25f)));    // fade out near the top
+                c.save();
+                c.translate(px, py);
+                c.rotate((float) Math.sin(t + phase[i]) * 12);
+                c.scale(size[i], size[i]);
+                fill.setColor(colour[i]);
+                fill.setAlpha((int) (190 * fade));
+                c.drawPath(heart, fill);
+                c.restore();
+                break;
+            }
+            case FIREFLY: case SPARKLE: {
+                float fx = x[i] + (float) Math.sin(t * vy[i] + phase[i]) * vx[i];
+                float fy = y[i] + (float) Math.cos(t * vy[i] * 0.8f + phase[i] * 1.3f) * vx[i] * 0.6f;
+                float pulse = Math.max(0f, (float) Math.sin(t * spin[i] + phase[i]));
+                int a = (int) (40 + 215 * pulse);
+                fill.setColor(k == FIREFLY ? 0xFFE8FF8A : colour[i]);
+                fill.setAlpha(a / 5);
+                c.drawCircle(fx, fy, size[i] * 4, fill);
+                fill.setAlpha(a / 3);
+                c.drawCircle(fx, fy, size[i] * 2, fill);
+                fill.setColor(k == FIREFLY ? 0xFFFFFFD0 : 0xFFFFFFFF);
+                fill.setAlpha(a);
+                c.drawCircle(fx, fy, size[i], fill);
+                break;
+            }
+            case GHOST: {
+                if (ghost == null) break;
+                float fade = Math.min(1f, Math.min(y[i] / (h * 0.2f), (h - y[i]) / (h * 0.2f)));
+                bitmapPaint.setAlpha((int) (170 * Math.max(0f, fade)));
+                oval.set(px - size[i] / 2, py - size[i] / 2, px + size[i] / 2, py + size[i] / 2);
+                c.drawBitmap(ghost, null, oval, bitmapPaint);
+                bitmapPaint.setAlpha(255);
+                break;
+            }
+            case CONFETTI: {
+                // A paper square spinning in 3D: one side narrows and widens.
+                float turn = Math.abs((float) Math.cos(t * 4 + phase[i]));
+                float s = size[i];
+                c.save();
+                c.translate(px, py);
+                c.rotate(rot[i]);
+                fill.setColor(colour[i]);
+                fill.setAlpha(230);
+                c.drawRect(-s / 2 * turn, -s / 3, s / 2 * turn, s / 3, fill);
+                c.restore();
+                break;
+            }
+            case PANCAKE:
+                drawPancake(c, i, px, py, t);
+                break;
+            case BALLOON:
+                drawBalloon(c, i, px, py, t);
+                break;
+            default:
+                break;
         }
     }
 
-    // ---- leaves and blossom ---------------------------------------------------------------------------
-
-    private void drawFalling(Canvas c, float t, float dt, int w, int h, Path shape) {
-        fill.setStyle(Paint.Style.FILL);
-        for (int i = 0; i < count; i++) {
-            y[i] += vy[i] * dt;
-            rot[i] += spin[i] * dt;
-            if (y[i] > h + 40 * dp) spawn(i, w, h, false);
-            float sway = (float) Math.sin(t * 0.9f + phase[i]) * vx[i];
-            // A leaf turning over: its width follows a slow cosine, so it flutters as it falls.
-            float flip = 0.35f + 0.65f * Math.abs((float) Math.cos(t * 1.3f + phase[i]));
-            c.save();
-            c.translate(x[i] + sway, y[i]);
-            c.rotate(rot[i]);
-            c.scale(size[i] * flip, size[i]);
-            fill.setColor(colour[i]);
-            fill.setAlpha(215);
-            c.drawPath(shape, fill);
-            if (shape == leaf) {
+    /** One of the unit shapes, in the current transform. */
+    private void drawShape(Canvas c, int k, int col) {
+        fill.setColor(col);
+        fill.setAlpha(225);
+        switch (k) {
+            case LEAF:
+                c.drawPath(leaf, fill);
                 line.setColor(0x66000000);
                 line.setStrokeWidth(0.04f);
                 c.drawLine(0, -0.45f, 0, 0.62f, line);              // the midrib and stem
-            }
-            c.restore();
+                break;
+            case PETAL:
+                c.drawPath(petal, fill);
+                break;
+            case ROSE:
+                c.drawPath(rose, fill);
+                break;
+            case SHAMROCK:
+                for (int l = 0; l < 3; l++) {                       // three heart-shaped leaves round the centre
+                    c.save();
+                    c.rotate(l * 120);
+                    c.translate(0, -0.22f);
+                    c.scale(0.6f, 0.6f);
+                    c.rotate(180);
+                    c.drawPath(heart, fill);
+                    c.restore();
+                }
+                line.setColor(col);
+                line.setStrokeWidth(0.07f);
+                c.drawLine(0, 0.05f, 0.12f, 0.55f, line);           // the stem
+                break;
+            case FLOWER:
+                for (int p = 0; p < 5; p++) {                       // five round petals and a yellow heart
+                    double a = TAU * p / 5;
+                    c.drawCircle((float) Math.cos(a) * 0.26f, (float) Math.sin(a) * 0.26f, 0.22f, fill);
+                }
+                fill.setColor(0xFFFFD54F);
+                c.drawCircle(0, 0, 0.15f, fill);
+                break;
+            case EGG:
+                c.drawPath(egg, fill);
+                line.setStrokeWidth(0.045f);
+                line.setColor(0xCCFFFFFF);
+                c.drawPath(zigzag, line);
+                line.setColor(darker(col));
+                c.drawLine(-0.24f, -0.2f, 0.24f, -0.2f, line);
+                c.drawLine(-0.32f, 0.25f, 0.32f, 0.25f, line);
+                break;
+            case TIE:
+                c.drawPath(tie, fill);
+                line.setColor(0x55FFFFFF);                           // stripes across the blade
+                line.setStrokeWidth(0.035f);
+                for (float s = -0.25f; s < 0.3f; s += 0.14f) c.drawLine(-0.15f, s, 0.15f, s + 0.08f, line);
+                break;
+            default:
+                break;
         }
     }
 
-    // ---- snow and Father Christmas -------------------------------------------------------------------
-
-    private void drawSnow(Canvas c, float t, float dt, int w, int h) {
-        fill.setStyle(Paint.Style.FILL);
-        for (int i = 0; i < count; i++) {
-            y[i] += vy[i] * dt;
-            if (y[i] > h + 10 * dp) spawn(i, w, h, false);
-            float drift = (float) Math.sin(t * 0.7f + phase[i]) * vx[i];
-            fill.setColor(colour[i]);
-            c.drawCircle(x[i] + drift, y[i], size[i], fill);
-        }
+    private static int darker(int argb) {
+        int r = ((argb >> 16) & 0xFF) * 3 / 5, g = ((argb >> 8) & 0xFF) * 3 / 5, b = (argb & 0xFF) * 3 / 5;
+        return 0xFF000000 | r << 16 | g << 8 | b;
     }
+
+    /** A pancake tossed and flipping: a golden disc whose height follows the flip, with browned spots. */
+    private void drawPancake(Canvas c, int i, float px, float py, float t) {
+        float flip = (float) Math.cos(t * spin[i] * TAU + phase[i]);
+        float s = size[i];
+        c.save();
+        c.translate(px, py);
+        c.rotate((float) Math.sin(t * 0.7f + phase[i]) * 15);
+        c.scale(1, Math.max(0.12f, Math.abs(flip)));
+        fill.setColor(0xFFE0A84E);
+        oval.set(-s / 2, -s / 2, s / 2, s / 2);
+        c.drawOval(oval, fill);
+        fill.setColor(0xFFF3CC7A);
+        oval.set(-s * 0.42f, -s * 0.42f, s * 0.42f, s * 0.42f);
+        c.drawOval(oval, fill);
+        fill.setColor(0xFFB9772F);                                  // browned spots, on the side facing us
+        if (flip > 0) {
+            c.drawCircle(-s * 0.15f, -s * 0.1f, s * 0.06f, fill);
+            c.drawCircle(s * 0.18f, s * 0.05f, s * 0.05f, fill);
+            c.drawCircle(-s * 0.02f, s * 0.2f, s * 0.045f, fill);
+        } else {
+            c.drawCircle(s * 0.1f, -s * 0.18f, s * 0.05f, fill);
+            c.drawCircle(-s * 0.2f, s * 0.12f, s * 0.06f, fill);
+        }
+        c.restore();
+    }
+
+    /** A party balloon on a wavy string, with a highlight. */
+    private void drawBalloon(Canvas c, int i, float px, float py, float t) {
+        float s = size[i];
+        fill.setColor(colour[i]);
+        fill.setAlpha(225);
+        oval.set(px - s * 0.4f, py - s * 0.5f, px + s * 0.4f, py + s * 0.5f);
+        c.drawOval(oval, fill);
+        c.drawCircle(px, py + s * 0.52f, s * 0.06f, fill);         // the knot
+        fill.setColor(0x66FFFFFF);
+        oval.set(px - s * 0.25f, py - s * 0.36f, px - s * 0.08f, py - s * 0.1f);
+        c.drawOval(oval, fill);
+        line.setColor(0x99FFFFFF);
+        line.setStrokeWidth(1.2f * dp);
+        float wave = (float) Math.sin(t * 2 + phase[i]) * s * 0.08f;
+        c.drawLine(px, py + s * 0.56f, px + wave, py + s * 0.95f, line);
+        c.drawLine(px + wave, py + s * 0.95f, px - wave, py + s * 1.35f, line);
+    }
+
+    // ---- Father Christmas ----------------------------------------------------------------------------
 
     /** Every SLEIGH_EVERY seconds, the sleigh and three reindeer cross the top of the screen, left to right. */
     private void drawSleigh(Canvas c, float t, int w, int h) {
@@ -340,82 +597,28 @@ final class SeasonView extends View {
         c.restore();
     }
 
-    // ---- hearts --------------------------------------------------------------------------------------
-
-    private void drawHearts(Canvas c, float t, float dt, int w, int h) {
-        fill.setStyle(Paint.Style.FILL);
-        for (int i = 0; i < count; i++) {
-            y[i] += vy[i] * dt;
-            if (y[i] < -40 * dp) spawn(i, w, h, false);
-            float sway = (float) Math.sin(t * 0.8f + phase[i]) * vx[i];
-            float fade = Math.min(1f, Math.max(0f, y[i] / (h * 0.25f)));   // fade out near the top
-            c.save();
-            c.translate(x[i] + sway, y[i]);
-            c.rotate((float) Math.sin(t + phase[i]) * 12);
-            c.scale(size[i], size[i]);
-            fill.setColor(colour[i]);
-            fill.setAlpha((int) (190 * fade));
-            c.drawPath(heart, fill);
-            c.restore();
-        }
-    }
-
-    // ---- fireflies -----------------------------------------------------------------------------------
-
-    private void drawFireflies(Canvas c, float t, int w, int h) {
-        fill.setStyle(Paint.Style.FILL);
-        for (int i = 0; i < count; i++) {
-            float fx = x[i] + (float) Math.sin(t * vy[i] + phase[i]) * vx[i];
-            float fy = y[i] + (float) Math.cos(t * vy[i] * 0.8f + phase[i] * 1.3f) * vx[i] * 0.6f;
-            float pulse = Math.max(0f, (float) Math.sin(t * spin[i] + phase[i]));
-            int a = (int) (40 + 215 * pulse);
-            fill.setColor(0xFFE8FF8A);
-            fill.setAlpha(a / 5);
-            c.drawCircle(fx, fy, size[i] * 4, fill);
-            fill.setAlpha(a / 3);
-            c.drawCircle(fx, fy, size[i] * 2, fill);
-            fill.setColor(0xFFFFFFD0);
-            fill.setAlpha(a);
-            c.drawCircle(fx, fy, size[i], fill);
-        }
-    }
-
-    // ---- Halloween -----------------------------------------------------------------------------------
+    // ---- Halloween pumpkins --------------------------------------------------------------------------
 
     /** Fixed spots at the screen's sides, as shares of its width and height, for the glowing pumpkins. */
     private static final float[][] PUMPKINS = {{0.055f, 0.30f}, {0.945f, 0.30f}, {0.075f, 0.52f}, {0.925f, 0.52f}};
 
-    private void drawHalloween(Canvas c, float t, float dt, int w, int h) {
-        if (pumpkin != null) {
-            float ps = 54 * dp;
-            for (int k = 0; k < PUMPKINS.length; k++) {
-                float px = PUMPKINS[k][0] * w, py = PUMPKINS[k][1] * h + (float) Math.sin(t * 1.1f + k) * 5 * dp;
-                // A candle glow that flickers behind each pumpkin.
-                float flicker = 0.7f + 0.3f * (float) Math.abs(Math.sin(t * 7.3f + k * 2.1f) * Math.sin(t * 3.1f + k));
-                if (glow.getShader() == null) {
-                    glow.setShader(new RadialGradient(0, 0, ps * 1.3f, 0xFFFF8A1E, 0x00FF8A1E, Shader.TileMode.CLAMP));
-                }
-                glow.setAlpha((int) (110 * flicker));
-                c.save();
-                c.translate(px, py);
-                c.drawCircle(0, 0, ps * 1.3f, glow);
-                c.restore();
-                oval.set(px - ps / 2, py - ps / 2, px + ps / 2, py + ps / 2);
-                c.drawBitmap(pumpkin, null, oval, bitmapPaint);
-            }
+    private void drawPumpkins(Canvas c, float t, int w, int h) {
+        if (pumpkin == null) return;
+        float ps = 54 * dp;
+        if (glow.getShader() == null) {
+            glow.setShader(new RadialGradient(0, 0, ps * 1.3f, 0xFFFF8A1E, 0x00FF8A1E, Shader.TileMode.CLAMP));
         }
-        if (ghost != null) {
-            for (int i = 0; i < count; i++) {
-                y[i] += vy[i] * dt;
-                if (y[i] < -size[i] * 1.5f) spawn(i, w, h, false);
-                float gx = x[i] + (float) Math.sin(t * 0.6f + phase[i]) * vx[i];
-                float fade = Math.min(1f, Math.min(y[i] / (h * 0.2f), (h - y[i]) / (h * 0.2f)));
-                bitmapPaint.setAlpha((int) (170 * Math.max(0f, fade)));
-                float gs = size[i];
-                oval.set(gx - gs / 2, y[i] - gs / 2, gx + gs / 2, y[i] + gs / 2);
-                c.drawBitmap(ghost, null, oval, bitmapPaint);
-            }
-            bitmapPaint.setAlpha(255);
+        for (int k = 0; k < PUMPKINS.length; k++) {
+            float px = PUMPKINS[k][0] * w, py = PUMPKINS[k][1] * h + (float) Math.sin(t * 1.1f + k) * 5 * dp;
+            // A candle glow that flickers behind each pumpkin.
+            float flicker = 0.7f + 0.3f * (float) Math.abs(Math.sin(t * 7.3f + k * 2.1f) * Math.sin(t * 3.1f + k));
+            glow.setAlpha((int) (110 * flicker));
+            c.save();
+            c.translate(px, py);
+            c.drawCircle(0, 0, ps * 1.3f, glow);
+            c.restore();
+            oval.set(px - ps / 2, py - ps / 2, px + ps / 2, py + ps / 2);
+            c.drawBitmap(pumpkin, null, oval, bitmapPaint);
         }
     }
 
@@ -428,7 +631,7 @@ final class SeasonView extends View {
                 bx[b] = w * (0.1f + rnd.nextFloat() * 0.8f);
                 by[b] = h * (0.1f + rnd.nextFloat() * 0.35f);
                 bt[b] = t;
-                bColour[b] = FIREWORK[rnd.nextInt(FIREWORK.length)];
+                bColour[b] = scene == Scene.NEW_YEAR && rnd.nextBoolean() ? any(GOLD) : any(FIREWORK);
                 break;
             }
             nextBurst = t + 0.7f + rnd.nextFloat() * 1.3f;

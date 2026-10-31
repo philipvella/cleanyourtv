@@ -93,6 +93,13 @@
             style="@style/SettingsRow"
             android:layout_marginTop="28dp" />
 
+        <!-- seasonal_scenes: shown only while the theme or config.xml has the key. -->
+        <TextView
+            android:id="@+id/seasonChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/animationsChoice"
             style="@style/SettingsRow"

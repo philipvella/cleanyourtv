@@ -147,6 +147,24 @@ final class Config {
     final boolean showStats;
     /** game_day: the package of an add-on that publishes each team's next game (GameDay); empty = off. */
     final String gameDay;
+    /** hero_text: a large headline centred in the upper third of Home (Welcome); empty = off. */
+    final String heroText;
+    /** hero_caption: a smaller line just above the dock band (Welcome); empty = off. */
+    final String heroCaption;
+    /** header_bottom: the clock and date at the bottom right, the greeting hidden; the pills stay at the top. */
+    final boolean headerBottom;
+    /** pill_labels_only: the top pills as text-only rounded chips, no icons. */
+    final boolean pillLabelsOnly;
+    /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
+    final String heroFont;
+    /** caption_bottom: hero_caption centred in the bottom strip instead of above the dock. */
+    final boolean captionBottom;
+    /** small_pills: the top-bar buttons 34dp tall instead of 42dp, with smaller text. */
+    final boolean smallPills;
+    /** ui_font: "roboto" for Home's text in the system sans-serif (HomeFont); empty keeps Outfit. */
+    final String uiFont;
+    /** weather_source: the package of an add-on that publishes a weather line (WeatherLine); empty = off. */
+    final String weatherSource;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
@@ -281,7 +299,18 @@ final class Config {
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly,
-                   int openOnStartNetworkWait, boolean iconOnlyVpn) {
+                   int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
+                   boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
+                   boolean captionBottom, boolean smallPills, String heroFont) {
+        this.heroFont = heroFont;
+        this.captionBottom = captionBottom;
+        this.smallPills = smallPills;
+        this.uiFont = uiFont;
+        this.heroText = heroText;
+        this.heroCaption = heroCaption;
+        this.headerBottom = headerBottom;
+        this.pillLabelsOnly = pillLabelsOnly;
+        this.weatherSource = weatherSource;
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -468,6 +497,15 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
         String gameDay = res.getString(R.string.game_day).trim();
+        String heroText = res.getString(R.string.hero_text).trim();
+        String heroCaption = res.getString(R.string.hero_caption).trim();
+        boolean headerBottom = res.getBoolean(R.bool.header_bottom);
+        boolean pillLabelsOnly = res.getBoolean(R.bool.pill_labels_only);
+        String weatherSource = res.getString(R.string.weather_source).trim();
+        String uiFont = res.getString(R.string.ui_font).trim();
+        boolean captionBottom = res.getBoolean(R.bool.caption_bottom);
+        boolean smallPills = res.getBoolean(R.bool.small_pills);
+        String heroFont = res.getString(R.string.hero_font).trim();
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -577,6 +615,15 @@ final class Config {
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
             gameDay = string(json, "game_day", gameDay);
+            heroText = string(json, "hero_text", heroText);
+            heroCaption = string(json, "hero_caption", heroCaption);
+            headerBottom = bool(json, "header_bottom", headerBottom);
+            pillLabelsOnly = bool(json, "pill_labels_only", pillLabelsOnly);
+            weatherSource = string(json, "weather_source", weatherSource);
+            uiFont = string(json, "ui_font", uiFont);
+            captionBottom = bool(json, "caption_bottom", captionBottom);
+            smallPills = bool(json, "small_pills", smallPills);
+            heroFont = string(json, "hero_font", heroFont);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -688,7 +735,8 @@ final class Config {
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
-                Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn);
+                Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
+                pillLabelsOnly, weatherSource, uiFont, captionBottom, smallPills, heroFont);
     }
 
     /**

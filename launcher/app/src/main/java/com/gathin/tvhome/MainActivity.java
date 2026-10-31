@@ -195,6 +195,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** game_day: each team's next game from an add-on, rotating in the race panel; null when the key is off. */
     private GameDay gameDay;
+    /** hero_text, hero_caption, header_bottom, pill_labels_only, weather_source; null when all are off. */
+    private Welcome welcome;
+    /** ui_font "inter": every text inflated on Home is given the system sans-serif (onCreateView); null keeps Outfit. */
+    private HomeFont homeFont;
+    /** pill_labels_only: the Wi-Fi pill never gets its icon back. */
+    private boolean pillLabelsOnly;
     private View raceBar;
     private LinearLayout racePager;
     private long rotationStart;
@@ -423,6 +429,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private java.util.Map<Integer, String> homeAppKeys = java.util.Collections.emptyMap();
 
+    /** ui_font: plain TextViews and TextClocks get the system sans-serif at their layout's weight as they are inflated. */
+    @Override
+    public View onCreateView(View parent, String name, Context context, android.util.AttributeSet attrs) {
+        if (homeFont != null && ("TextView".equals(name) || "TextClock".equals(name))) {
+            TextView t = "TextView".equals(name) ? new TextView(context, attrs) : new android.widget.TextClock(context, attrs);
+            homeFont.apply(t);
+            return t;
+        }
+        return super.onCreateView(parent, name, context, attrs);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -430,6 +447,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        // ui_font: the main layout was inflated before the config was read, so it is converted once here; what is
+        // inflated later (tiles, menus, dialogs) is converted as it is made, in onCreateView.
+        homeFont = HomeFont.create(cfg.uiFont);
+        if (homeFont != null) homeFont.applyAll(getWindow().getDecorView());
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
@@ -665,7 +686,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Keep the hero below the header when the library is enabled on a short screen,
             // even when the theme requests an extra visible row below the dock.
             int shelfClearance = cfg.appLibrary ? hero.getMeasuredHeight() + (int) (40 * density) : 0;
-            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
+            int want = Math.max(shelfClearance, h - dockRow - gridRows
+                    - (int) (Welcome.bottomRoomDp(cfg, AppAdapter.BOTTOM_ROOM_DP) * density));
             // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
             // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
             if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
@@ -879,6 +901,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
+        pillLabelsOnly = Welcome.labelsOnly(cfg);
+        welcome = Welcome.attach(this, cfg, root, grid, handler, homeFont);
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -982,6 +1006,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
         if (gameDay != null && !stopped) gameDay.read();
+        if (welcome != null && !stopped) welcome.homeAgain();
         grid.scrollToPosition(0);
         lastFocused = 0;
         lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
@@ -1056,6 +1081,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (showStats) startStats();
         if (gameDay != null) gameDay.start();
+        if (welcome != null) welcome.start();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -1237,6 +1263,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         startPending = null;   // leaving Home before the network came back: the boot's app stays closed
         stopStats();
         if (gameDay != null) gameDay.stop();
+        if (welcome != null) welcome.stop();
         handler.removeCallbacks(turnTick);
         if (lamp != null) lamp.stop();
         cancelPendingFocusScroll();
@@ -1292,6 +1319,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         if (gameDay != null) gameDay.shutdown();
+        if (welcome != null) welcome.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -2859,7 +2887,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lamp.setSteady(steady);
             lamp.setFlame(flame);
         } else {
-            if (icon != wifiIcon) {
+            if (icon != wifiIcon && !pillLabelsOnly) {
                 wifiIcon = icon;
                 btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
             }

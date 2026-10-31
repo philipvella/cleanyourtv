@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- The only permission: Open-Meteo, for the weather at the place set in options.xml. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- No activity and no service: the app runs only while the launcher asks for the line. -->
+    <application
+        android:allowBackup="false"
+        android:banner="@drawable/banner"
+        android:icon="@drawable/banner"
+        android:label="@string/app_name">
+
+        <!-- Clean Your TV launcher, weather_source (docs/modules.md): where Home reads the weather line. -->
+        <meta-data android:name="com.gathin.tvhome.weather" android:value="io.github.philipvella.vellaweather.now" />
+
+        <!-- Read-only and holding only what Home shows anyway: the line and the place's name. -->
+        <provider
+            android:name=".WeatherProvider"
+            android:authorities="io.github.philipvella.vellaweather.now"
+            android:exported="true" />
+    </application>
+</manifest>

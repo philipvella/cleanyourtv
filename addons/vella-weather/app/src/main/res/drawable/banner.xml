@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The weather add-on's sun behind a cloud (addons/weather), on a night sky: no third-party art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF0B0908" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFFFC94A" android:pathData="M190,72m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M110,128h96a22,22 0,0 0,0 -44a30,30 0,0 0,-56 -10a24,24 0,0 0,-40 18a18,18 0,0 0,0 36z" />
+</vector>

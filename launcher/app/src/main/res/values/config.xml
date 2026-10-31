@@ -445,6 +445,35 @@
          online. A theme can set "game_day". -->
     <string name="game_day" translatable="false"></string>
 
+    <!-- A welcome screen. hero_text: a large headline centred in the upper third of Home, as written, with \n for a
+         second line ("Welcome to\n19 Main Street"); hero_caption: a smaller line just above the dock band. Both with a
+         soft shadow for a photo, in the launcher's font. Empty (the default) shows neither. A
+         theme can set "hero_text" and "hero_caption". -->
+    <string name="hero_text" translatable="false"></string>
+    <string name="hero_caption" translatable="false"></string>
+    <!-- The clock and the date at the bottom right of Home, with the greeting hidden; the top-right pills stay where
+         they are. Off by default. A theme can set "header_bottom". -->
+    <bool name="header_bottom">false</bool>
+    <!-- The top pills (Inputs, Wi-Fi, Settings) as text-only rounded chips, without their icons. Off by default; a
+         theme can set "pill_labels_only". -->
+    <bool name="pill_labels_only">false</bool>
+    <!-- One weather line at the bottom left of Home ("22°C · light rain · wind 10 m/s" and the place under it): the
+         package of an add-on that publishes it (contract in docs/modules.md). Empty = off: nothing is read or watched.
+         The launcher only reads what the add-on publishes and never goes online. A theme can set "weather_source". -->
+    <string name="weather_source" translatable="false"></string>
+    <!-- "roboto": Home's text in the TV's own system sans-serif (Roboto on Android TV), each text at the weight it had in
+         Outfit; nothing is bundled. Empty (the default) keeps Outfit. A theme can set "ui_font". -->
+    <string name="ui_font" translatable="false"></string>
+    <!-- hero_caption centred at the bottom of Home, between the weather and the clock, instead of above the dock. Off by
+         default; a theme can set "caption_bottom". -->
+    <bool name="caption_bottom">false</bool>
+    <!-- The top-bar buttons 34dp tall instead of 42dp, with 13sp text, so they draw less of the eye. Off by default; a
+         theme can set "small_pills". -->
+    <bool name="small_pills">false</bool>
+    <!-- "montserrat": hero_text and hero_caption in the bundled Montserrat Light (Latin, about 9 KB). Empty (the default)
+         draws them in the launcher's font and never loads Montserrat. A theme can set "hero_font". -->
+    <string name="hero_font" translatable="false"></string>
+
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
          horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100
          sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with

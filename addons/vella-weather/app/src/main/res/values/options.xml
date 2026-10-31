@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Set before building. The place's name is what Home shows under the line; latitude and longitude are what is
+     sent to Open-Meteo. -->
+<resources>
+    <string name="place" translatable="false">St Albans</string>
+    <string name="latitude" translatable="false">51.755</string>
+    <string name="longitude" translatable="false">-0.336</string>
+    <string name="app_name" translatable="false">Vella weather</string>
+</resources>

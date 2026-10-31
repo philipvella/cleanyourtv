@@ -1,0 +1,21 @@
+{
+  "wallpaper": true,
+  "wallpaper_true_color": true,
+  "wallpaper_dim": 35,
+  "background_color": "#0B0908",
+  "ambient_glow": false,
+  "app_glow": false,
+  "glow_style": "off",
+  "dock_glass": true,
+  "dock_opacity": 60,
+  "dock_title": false,
+  "columns": 5,
+  "rows_below_dock": 0,
+  "show_greeting": true,
+  "greeting_name": "Vellas",
+  "header_white": true,
+  "icon_only_buttons": false,
+  "focus_overshoot": false,
+  "tile_menu": true,
+  "app_library": true
+}

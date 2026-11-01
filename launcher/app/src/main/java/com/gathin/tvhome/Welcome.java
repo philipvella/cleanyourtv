@@ -618,6 +618,11 @@ final class Welcome {
             matchType(weatherText, R.id.clock);
             matchType(weatherSummary, R.id.date);
             if (gauge) weatherGauge.face(weatherText.getTypeface());
+            // The sky's words in the hero's light face (hero_font), like "The Vellas" above, not the clock's.
+            if (gauge && heroFace != null) {
+                weatherText.setTypeface(heroFace);
+                weatherText.setLetterSpacing(0.01f);
+            }
             weatherText.setText(temp);
             weatherSummary.setText(summary.toUpperCase(here));
             // The place on a line of its own under the details, in the date's type, a little dimmer.

@@ -454,8 +454,22 @@ final class Welcome {
                 TextView t = (TextView) v;
                 t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
                 if (t.getText().length() > 0) t.setPaddingRelative(pad, 0, pad, 0);
+                else if (lp.width == h) centreIcon(t, h);
             }
         }
+    }
+
+    /**
+     * A round icon button made smaller: its side padding was set for the 42dp button, which left the 34dp one too
+     * narrow for the icon, so it was drawn from the left padding and sat off-centre. Pads it to centre the icon.
+     */
+    private static void centreIcon(TextView t, int side) {
+        android.graphics.drawable.Drawable icon = null;
+        for (android.graphics.drawable.Drawable d : t.getCompoundDrawablesRelative()) if (d != null) { icon = d; break; }
+        if (icon == null) return;
+        int w = icon.getBounds().width() > 0 ? icon.getBounds().width() : icon.getIntrinsicWidth();
+        int pad = Math.max(0, (side - w) / 2);
+        t.setPaddingRelative(pad, 0, side - w - pad > 0 ? side - w - pad : 0, 0);
     }
 
     // ---- weather at the bottom left -----------------------------------------------------------------

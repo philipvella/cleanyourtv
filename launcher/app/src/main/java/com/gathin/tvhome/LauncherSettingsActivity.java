@@ -181,16 +181,29 @@ public final class LauncherSettingsActivity extends Activity {
         // A theme with a single wallpaper.jpg offers that picture too (Config maps the choice back to it).
         File single = dir == null ? null : new File(dir, Config.WALLPAPER_NAME);
         if (single != null && single.isFile()) images.add(0, single);
-        String[] labels = new String[images.size() + 1];
-        for (int i = 0; i < images.size(); i++) labels[i] = images.get(i).getName();
-        labels[images.size()] = getString(R.string.wallpaper_none);
+        // wallpaper_moods: Auto first, the theme's day and night pictures by the sun (no on-TV pick).
+        String auto = wallpaperAutoLabel(false);
+        int first = auto != null ? 1 : 0;
+        String[] labels = new String[images.size() + 1 + first];
+        if (auto != null) labels[0] = auto;
+        for (int i = 0; i < images.size(); i++) labels[i + first] = images.get(i).getName();
+        labels[images.size() + first] = getString(R.string.wallpaper_none);
         String current = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
-        int checked = "none".equals(current) ? images.size()
-                : indexOf(images, current);
+        int at = indexOf(images, current);
+        int checked = "none".equals(current) ? images.size() + first
+                : current == null && auto != null ? 0
+                : at < 0 ? -1 : at + first;
         new AlertDialog.Builder(this)
                 .setTitle(R.string.wallpaper_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                .setSingleChoiceItems(labels, checked, (dialog, picked) -> {
                     dialog.dismiss();
+                    if (auto != null && picked == 0) {
+                        choices.edit().remove(Config.WALLPAPER_CHOICE_KEY).apply();
+                        changed();
+                        refresh();
+                        return;
+                    }
+                    int which = picked - first;
                     if (which == images.size()) {
                         choices.edit().putString(Config.WALLPAPER_CHOICE_KEY, "none").apply();
                     } else {
@@ -208,6 +221,29 @@ public final class LauncherSettingsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    /**
+     * wallpaper_moods without an on-TV pick: "Auto: day from 06:55, night from 17:03", today's times at the theme's
+     * place, and with {@code now} the picture showing now. Null when the theme has no day and night groups.
+     */
+    private String wallpaperAutoLabel(boolean now) {
+        Config cfg = Config.load(this);
+        if (cfg.wallpaperMoods.isEmpty()) return null;
+        java.time.LocalDateTime time = java.time.LocalDateTime.now();
+        int[] sun = WallpaperMood.sun(time.toLocalDate(), cfg.latitude, cfg.longitude, java.time.ZoneId.systemDefault());
+        // Night starts once dusk is over (WallpaperMood), half an hour after sunset.
+        int night = WallpaperMood.nightStarts(sun[1]);
+        String label = getString(R.string.wallpaper_auto, hhmm(sun[0]), hhmm(night));
+        if (!now) return label;
+        List<File> showing = WallpaperMood.select(cfg.wallpapers, cfg.wallpaperMoods,
+                WallpaperMood.timeOfDay(time.getHour() * 60 + time.getMinute(), sun[0], sun[1]));
+        return showing.isEmpty() ? label : getString(R.string.wallpaper_auto_now, label, showing.get(0).getName());
+    }
+
+    private static String hhmm(int minutes) {
+        int m = ((minutes % 1440) + 1440) % 1440;
+        return String.format(java.util.Locale.ROOT, "%02d:%02d", m / 60, m % 60);
     }
 
     /** seasonal_scenes: Auto (by the date), Off, or one scene all year; Theme default forgets the pick. */
@@ -360,6 +396,7 @@ public final class LauncherSettingsActivity extends Activity {
         wallpaperChoice.setText(getString(R.string.wallpaper_state,
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
                         : wallpaperCurrent != null ? wallpaperCurrent
+                        : wallpaperAutoLabel(true) != null ? wallpaperAutoLabel(true)
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
         if (seasonChoice != null) seasonChoice.setText(getString(R.string.season_state, seasonLabel()));

@@ -58,6 +58,8 @@
     <string name="wallpaper_none">None</string>
     <string name="wallpaper_applied">Wallpaper changed</string>
     <string name="wallpaper_theme_default">Theme default</string>
+    <string name="wallpaper_auto" translatable="false">Auto: day from %1$s, night from %2$s</string>
+    <string name="wallpaper_auto_now" translatable="false">%1$s · now %2$s</string>
     <!-- seasonal_scenes, in Launcher settings. English only for now: the row shows only on a theme that sets the key. -->
     <string name="season_label" translatable="false">Seasonal scenes</string>
     <string name="season_state" translatable="false">Seasonal scenes: %1$s</string>

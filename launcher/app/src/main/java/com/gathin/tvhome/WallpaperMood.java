@@ -26,6 +26,11 @@ final class WallpaperMood {
     private WallpaperMood() {
     }
 
+    /** The minute of the day night begins, for a sunset in minutes of the day: once dusk is over. */
+    static int nightStarts(int sunset) {
+        return sunset + DUSK_MINUTES;
+    }
+
     /** The mood at this minute of the day, for a sunrise and sunset in minutes of the day. */
     static String timeOfDay(int minute, int sunrise, int sunset) {
         if (minute >= sunrise && minute < NOON) return MORNING;

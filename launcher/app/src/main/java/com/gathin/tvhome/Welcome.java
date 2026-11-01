@@ -617,13 +617,18 @@ final class Welcome {
         if (split) {
             matchType(weatherText, R.id.clock);
             matchType(weatherSummary, R.id.date);
-            if (gauge) weatherGauge.face(weatherText.getTypeface());
-            // The sky's words in the hero's light face (hero_font), like "The Vellas" above, not the clock's.
-            if (gauge && heroFace != null) {
-                weatherText.setTypeface(heroFace);
-                weatherText.setLetterSpacing(0.01f);
+            if (gauge) {
+                weatherGauge.face(weatherText.getTypeface());
+                // The gauge is this side's one large element, as the clock is on the right; the sky's words join the
+                // small capitals under it in the date's type, in full white so they lead the lines.
+                matchType(weatherText, R.id.date);
+                weatherText.setTextColor(0xFFFFFFFF);
             }
-            weatherText.setText(temp);
+            weatherText.setText(gauge ? temp.toUpperCase(here) : temp);
+            // Small capitals stacked as the date and the sunset are on the right: 6dp apart.
+            int gap = Math.round((gauge ? 6 : 4) * density);
+            ((LinearLayout.LayoutParams) weatherSummary.getLayoutParams()).topMargin = gap;
+            ((LinearLayout.LayoutParams) weatherPlace.getLayoutParams()).topMargin = gauge ? gap : Math.round(5 * density);
             weatherSummary.setText(summary.toUpperCase(here));
             // The place on a line of its own under the details, in the date's type, a little dimmer.
             matchType(weatherPlace, R.id.date);
@@ -637,7 +642,7 @@ final class Welcome {
         weatherSummary.setVisibility(split ? View.VISIBLE : View.GONE);
         weatherPlace.setVisibility(place.isEmpty() ? View.GONE : View.VISIBLE);
         // The add-on's icon before the first line, no taller than its capitals.
-        int size = Math.round((split ? 20 : 16) * density);
+        int size = Math.round((weatherGauge.getVisibility() == View.VISIBLE ? 15 : split ? 20 : 16) * density);
         if (WeatherIcon.known(icon)) {
             android.graphics.drawable.Drawable now = weatherText.getCompoundDrawables()[0];
             if (!icon.equals(weatherIcon) || now == null || now.getBounds().width() != size) {

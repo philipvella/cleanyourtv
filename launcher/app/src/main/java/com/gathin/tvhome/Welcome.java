@@ -629,7 +629,7 @@ final class Welcome {
             int gap = Math.round((gauge ? 6 : 4) * density);
             ((LinearLayout.LayoutParams) weatherSummary.getLayoutParams()).topMargin = gap;
             ((LinearLayout.LayoutParams) weatherPlace.getLayoutParams()).topMargin = gauge ? gap : Math.round(5 * density);
-            weatherSummary.setText(summary.toUpperCase(here));
+            weatherSummary.setText(capitalsKeepingUnits(summary, here));
             // The place on a line of its own under the details, in the date's type, a little dimmer.
             matchType(weatherPlace, R.id.date);
             weatherPlace.setTextColor(0xB3FFFFFF);
@@ -657,6 +657,25 @@ final class Welcome {
         weatherIcon = WeatherIcon.known(icon) ? icon : "";
         weatherBlock.setVisibility(line.isEmpty() ? View.GONE : View.VISIBLE);
         weatherBlock.setContentDescription(place.isEmpty() ? line : line + ", " + place);
+    }
+
+    /** A unit after a number: m/s, km/h, mph, kn, mm, cm, hPa, mb, °C, °F and %; their case is part of their meaning. */
+    private static final java.util.regex.Pattern UNIT = java.util.regex.Pattern.compile(
+            "(?<=\\d)(\\s?)(m/s|km/h|mph|kn|kt|mm|cm|hPa|mb|°C|°F|%)(?![\\p{L}/])");
+
+    /**
+     * The line in capitals, like the date, except its units: "wind 3 m/s" reads "WIND 3 m/s", not "WIND 3 M/S"
+     * (megasiemens).
+     */
+    static String capitalsKeepingUnits(String s, Locale here) {
+        StringBuilder out = new StringBuilder();
+        java.util.regex.Matcher m = UNIT.matcher(s);
+        int from = 0;
+        while (m.find()) {
+            out.append(s.substring(from, m.start()).toUpperCase(here)).append(m.group());
+            from = m.end();
+        }
+        return out.append(s.substring(from).toUpperCase(here)).toString();
     }
 
     /** "-3", "14" or "10°C" to whole degrees; null when there is no number. */

@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
@@ -87,6 +88,8 @@ final class Welcome {
     /** clock_gauge: the time in a ring of the day or night that is left, and the row holding it beside the date. */
     private RingGauge clockGauge;
     private LinearLayout clockGaugeRow;
+    /** clock_mono (Config): the clock's ring in white. */
+    private boolean clockMono;
     /** weather_place and weather_mono (Config). */
     private boolean showPlace = true, mono;
     /** The clock's own line (the time and AM/PM), hidden while the ring shows the time. */
@@ -161,6 +164,7 @@ final class Welcome {
         }
         if (cfg.smallPills) w.smallPills();
         if (cfg.nextSunTime) w.addSunLine(cfg, main);
+        w.clockMono = cfg.clockMono;
         if (cfg.clockGauge && cfg.headerBottom) w.addClockGauge(cfg, root, main);
         if (!cfg.weatherSource.isEmpty()) {
             w.showPlace = cfg.weatherPlace;
@@ -616,7 +620,8 @@ final class Welcome {
                 boolean day = period[0] == 1;
                 float done = (minute - period[1]) / (float) Math.max(1, period[2] - period[1]);
                 clockGauge.show(clockText(minute, true), clockText(period[1], true), clockText(period[2], true), done,
-                        day ? DAY_FROM : NIGHT_FROM, day ? DAY_TO : NIGHT_TO, true);
+                        clockMono ? Color.WHITE : day ? DAY_FROM : NIGHT_FROM,
+                        clockMono ? Color.WHITE : day ? DAY_TO : NIGHT_TO, true);
                 clockGauge.setContentDescription(clockText(minute, true));
             }
             if (!valid) {

@@ -511,6 +511,9 @@
          the sun's yellow, the rain's blue and the ring's warm and cold tints. Off by default; a theme can set
          "weather_mono": true. -->
     <bool name="weather_mono">false</bool>
+    <!-- clock_gauge: the clock's ring in white, its passed part dimmed, instead of the day's warm and the night's blue
+         tints. Off by default; a theme can set "clock_mono": true. -->
+    <bool name="clock_mono">false</bool>
     <!-- App tiles in greyscale, fading to their own colours only while focused, so the screen stays calm and the
          focused app stands out. Off by default; a theme can set "mono_tiles": true. -->
     <bool name="mono_tiles">false</bool>

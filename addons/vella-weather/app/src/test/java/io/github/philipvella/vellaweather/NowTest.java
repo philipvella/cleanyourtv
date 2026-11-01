@@ -46,8 +46,8 @@ public class NowTest {
     }
 
     @Test
-    public void todaysRangeReadsHighThenLow() {
-        org.junit.Assert.assertEquals("High 14° Low 6°", Now.range(13.6, 5.8));
-        org.junit.Assert.assertEquals("", Now.range(Double.NaN, 5));
+    public void detailsLeadWithTheFeelsLikeTemperature() {
+        org.junit.Assert.assertEquals("feels like 8° · wind 2 m/s", Now.details(7.6, 2.4));
+        org.junit.Assert.assertEquals("feels like -3° · wind 0 m/s", Now.details(-2.6, 0));
     }
 }

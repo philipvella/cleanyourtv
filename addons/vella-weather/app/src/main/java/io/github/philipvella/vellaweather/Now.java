@@ -30,6 +30,8 @@ final class Now {
         final String icon;
         final String temp;
         final String summary;
+        /** Today's high and low as whole °C ("14"), the sky's words, and "feels like 8° · wind 2 m/s"; for the gauge. */
+        String high = "", low = "", sky = "", details = "";
 
         Reading(String line, String icon, String temp, String summary) {
             this.line = line;
@@ -43,7 +45,7 @@ final class Now {
     static Reading fetch(double latitude, double longitude) throws IOException, JSONException {
         String where = String.format(Locale.ROOT, "latitude=%.4f&longitude=%.4f", latitude, longitude);
         JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
-                + "&current=temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m"
+                + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m"
                 + "&daily=temperature_2m_max,temperature_2m_min&forecast_days=1"
                 + "&wind_speed_unit=ms&timezone=auto");
         JSONObject current = reply.getJSONObject("current");
@@ -53,14 +55,22 @@ final class Now {
         int code = snowIfCold(current.getInt("weather_code"), temp, humidity);
         boolean day = current.getInt("is_day") == 1;
         double wind = current.optDouble("wind_speed_10m", 0);
-        String range = "";
+        double feels = current.optDouble("apparent_temperature", temp);
+        String details = details(feels, wind);
+        Reading reading = new Reading(line(temp, code, day, wind), icon(code, day), temp(temp),
+                sky(code, day) + " · " + details);
+        reading.sky = sky(code, day);
+        reading.details = details;
         if (daily != null && daily.optJSONArray("temperature_2m_max") != null && daily.optJSONArray("temperature_2m_min") != null) {
-            range = range(daily.getJSONArray("temperature_2m_max").optDouble(0, Double.NaN),
-                    daily.getJSONArray("temperature_2m_min").optDouble(0, Double.NaN));
+            double max = daily.getJSONArray("temperature_2m_max").optDouble(0, Double.NaN);
+            double min = daily.getJSONArray("temperature_2m_min").optDouble(0, Double.NaN);
+            if (!Double.isNaN(max) && !Double.isNaN(min)) {
+                // The day's range always holds the temperature now: the model's hourly high can trail the reading.
+                reading.high = String.valueOf(Math.max(Math.round(max), Math.round(temp)));
+                reading.low = String.valueOf(Math.min(Math.round(min), Math.round(temp)));
+            }
         }
-        String summary = summary(code, day, wind);
-        if (!range.isEmpty()) summary = sky(code, day) + " · " + range + " · wind " + Math.round(wind) + " m/s";
-        return new Reading(line(temp, code, day, wind), icon(code, day), temp(temp), summary);
+        return reading;
     }
 
     /**
@@ -78,10 +88,9 @@ final class Now {
         return "cloudy";
     }
 
-    /** Today's "High 14° Low 6°"; empty when either is missing. */
-    static String range(double max, double min) {
-        if (Double.isNaN(max) || Double.isNaN(min)) return "";
-        return "High " + Math.round(max) + "° Low " + Math.round(min) + "°";
+    /** "feels like 8° · wind 2 m/s". */
+    static String details(double feelsC, double windMs) {
+        return "feels like " + Math.round(feelsC) + "° · wind " + Math.round(windMs) + " m/s";
     }
 
     /** "22°C · light rain · wind 10 m/s". */

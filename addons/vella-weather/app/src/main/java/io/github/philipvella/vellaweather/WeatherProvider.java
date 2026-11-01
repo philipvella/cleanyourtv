@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class WeatherProvider extends ContentProvider {
     static final String AUTHORITY = "io.github.philipvella.vellaweather.now";
     static final Uri NOW = Uri.parse("content://" + AUTHORITY + "/now");
-    static final String[] COLUMNS = {"line", "place", "icon", "temp", "summary"};
+    static final String[] COLUMNS = {"line", "place", "icon", "temp", "summary", "high", "low", "sky", "details"};
     private static final ExecutorService ONE = Executors.newSingleThreadExecutor();
     private static final AtomicBoolean FETCHING = new AtomicBoolean();
 
@@ -43,7 +43,9 @@ public final class WeatherProvider extends ContentProvider {
         String summary = saved.getString("summary", "");
         long at = saved.getLong("at", 0);
         MatrixCursor c = new MatrixCursor(COLUMNS);
-        if (!line.isEmpty() && now - at < Now.STALE_MS) c.addRow(new Object[] {line, ctx.getString(R.string.place), icon, temp, summary});
+        if (!line.isEmpty() && now - at < Now.STALE_MS) c.addRow(new Object[] {line, ctx.getString(R.string.place), icon, temp, summary,
+                saved.getString("high", ""), saved.getString("low", ""), saved.getString("sky", ""),
+                saved.getString("details", "")});
         c.setNotificationUri(ctx.getContentResolver(), NOW);
         long due = saved.getBoolean("failed", false) ? Now.RETRY_MS : Now.REFRESH_MS;
         if (now - Math.max(at, saved.getLong("tried", 0)) >= due || now < at) refresh(ctx.getApplicationContext());
@@ -59,7 +61,9 @@ public final class WeatherProvider extends ContentProvider {
                 Now.Reading reading = Now.fetch(Double.parseDouble(app.getString(R.string.latitude)),
                         Double.parseDouble(app.getString(R.string.longitude)));
                 saved.edit().putString("line", reading.line).putString("icon", reading.icon).putString("temp", reading.temp)
-                        .putString("summary", reading.summary).putLong("at", now).putLong("tried", now)
+                        .putString("summary", reading.summary)
+                        .putString("high", reading.high).putString("low", reading.low).putString("sky", reading.sky)
+                        .putString("details", reading.details).putLong("at", now).putLong("tried", now)
                         .putBoolean("failed", false).apply();
                 app.getContentResolver().notifyChange(NOW, null);
             } catch (Exception e) {

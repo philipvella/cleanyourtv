@@ -26,7 +26,13 @@ import java.util.Random;
  * {@link #stop}; nothing is allocated per frame.
  */
 final class SeasonView extends View {
-    private static final long FRAME_MS = 33;
+    /** 20 frames a second: the calm pace below needs no more, and the TV does less. */
+    private static final long FRAME_MS = 50;
+    /**
+     * Kept in the background, so the scene never pulls the eye from Home: the share of each scene's particles drawn,
+     * the pace of every motion (falling, spinning, swaying, bursts, the sleigh), and the whole layer's opacity.
+     */
+    static final float CALM_SHARE = 0.45f, CALM_PACE = 0.55f, CALM_OPACITY = 0.75f;
     private static final double TAU = Math.PI * 2;
     private static final int MAX = 64;
 
@@ -95,6 +101,7 @@ final class SeasonView extends View {
         setFocusable(false);
         setClickable(false);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        setAlpha(CALM_OPACITY);
         // Unit shapes, about one unit across, scaled per particle.
         leaf.moveTo(0, -0.5f);
         leaf.cubicTo(0.38f, -0.3f, 0.32f, 0.3f, 0, 0.5f);
@@ -196,6 +203,11 @@ final class SeasonView extends View {
             case BIRTHDAY: kindA = BALLOON; kindB = CONFETTI; split = 9; count = 45; break;
             case ANNIVERSARY: kindA = ROSE; kindB = SPARKLE; split = 16; count = 36; break;
             default: count = 0;
+        }
+        // Fewer of everything, the two kinds of a mixed scene in the same proportion.
+        if (count > 0) {
+            if (kindB >= 0) split = Math.max(2, Math.round(split * CALM_SHARE));
+            count = Math.max(3, Math.round(count * CALM_SHARE));
         }
         if (kindB < 0) split = count;
         for (int i = 0; i < count; i++) spawn(i, w, h, true);
@@ -322,13 +334,19 @@ final class SeasonView extends View {
         }
     }
 
+    /** The layer's opacity applies to each shape on its own: no full-screen offscreen buffer every frame. */
+    @Override
+    public boolean hasOverlappingRendering() {
+        return false;
+    }
+
     @Override
     protected void onDraw(Canvas c) {
         if (scene == Scene.NONE) return;
         long now = SystemClock.uptimeMillis();
-        float dt = Math.min(0.1f, Math.max(0, (now - lastMs) / 1000f));
+        float dt = Math.min(0.1f, Math.max(0, (now - lastMs) / 1000f)) * CALM_PACE;
         lastMs = now;
-        float t = (now - startMs) / 1000f;
+        float t = (now - startMs) / 1000f * CALM_PACE;
         int w = getWidth(), h = getHeight();
         if (scene == Scene.HALLOWEEN) drawPumpkins(c, t, w, h);
         if (scene == Scene.FIREWORKS || scene == Scene.NEW_YEAR) drawFireworks(c, t, w, h);

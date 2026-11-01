@@ -11,7 +11,8 @@ import android.graphics.drawable.Drawable;
 /**
  * weather_source: the icon beside the weather line, drawn in code (no bitmaps) from the name the add-on publishes
  * in its "icon" column: clear-day, clear-night, partly-cloudy-day, partly-cloudy-night, cloudy, fog, drizzle, rain,
- * snow or thunder. {@link #known} says whether a name is one of them; an unknown name shows no icon.
+ * snow or thunder. {@link #known} says whether a name is one of them; an unknown name shows no icon. "wind" is the
+ * launcher's own, the glyph before the wind speed in the line under it.
  */
 final class WeatherIcon extends Drawable {
     private static final int SUN = 0xFFFFD36B, MOON = 0xFFF2E6C8, CLOUD = 0xFFFFFFFF, DROP = 0xFF8FD3FF,
@@ -88,6 +89,24 @@ final class WeatherIcon extends Drawable {
                 cloud(c, s, 0, -0.12f, shade);
                 dots(c, s, shade ? SHADE : CLOUD, 0.045f,
                         new float[] {0.34f, 0.8f, 0.54f, 0.8f, 0.74f, 0.8f, 0.44f, 0.93f, 0.64f, 0.93f});
+                break;
+            case "wind":
+                // Three gusts, the upper two curling at their ends.
+                line.setColor(shade ? SHADE : CLOUD);
+                line.setStrokeWidth(0.085f * s);
+                line.setStrokeJoin(Paint.Join.ROUND);
+                path.reset();
+                path.moveTo(0.08f * s, 0.36f * s);
+                path.lineTo(0.6f * s, 0.36f * s);
+                path.cubicTo(0.78f * s, 0.36f * s, 0.8f * s, 0.12f * s, 0.64f * s, 0.12f * s);
+                path.cubicTo(0.58f * s, 0.12f * s, 0.54f * s, 0.16f * s, 0.53f * s, 0.21f * s);
+                path.moveTo(0.08f * s, 0.54f * s);
+                path.lineTo(0.76f * s, 0.54f * s);
+                path.cubicTo(0.96f * s, 0.54f * s, 0.98f * s, 0.82f * s, 0.8f * s, 0.82f * s);
+                path.cubicTo(0.73f * s, 0.82f * s, 0.69f * s, 0.78f * s, 0.68f * s, 0.73f * s);
+                path.moveTo(0.08f * s, 0.72f * s);
+                path.lineTo(0.46f * s, 0.72f * s);
+                c.drawPath(path, line);
                 break;
             case "thunder":
                 cloud(c, s, 0, -0.12f, shade);

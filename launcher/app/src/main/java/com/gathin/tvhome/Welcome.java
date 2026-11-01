@@ -629,7 +629,7 @@ final class Welcome {
             int gap = Math.round((gauge ? 6 : 4) * density);
             ((LinearLayout.LayoutParams) weatherSummary.getLayoutParams()).topMargin = gap;
             ((LinearLayout.LayoutParams) weatherPlace.getLayoutParams()).topMargin = gauge ? gap : Math.round(5 * density);
-            weatherSummary.setText(capitalsKeepingUnits(summary, here));
+            weatherSummary.setText(windAsGlyph(capitalsKeepingUnits(summary, here), weatherSummary));
             // The place on a line of its own under the details, in the date's type, a little dimmer.
             matchType(weatherPlace, R.id.date);
             weatherPlace.setTextColor(0xB3FFFFFF);
@@ -676,6 +676,60 @@ final class Welcome {
             from = m.end();
         }
         return out.append(s.substring(from).toUpperCase(here)).toString();
+    }
+
+    /** "WIND" just before a speed: its word becomes the wind glyph ("WIND 3 m/s" reads "≋ 3 m/s"). */
+    private static final java.util.regex.Pattern WIND_WORD = java.util.regex.Pattern.compile("\\bWIND (?=[-\\d])");
+
+    /**
+     * The details line with the word "WIND" before a speed swapped for the wind glyph, the way the cloud stands
+     * before the conditions: the unit already says what the number is. Anything else is left as it is.
+     */
+    private static CharSequence windAsGlyph(String s, TextView on) {
+        java.util.regex.Matcher m = WIND_WORD.matcher(s);
+        if (!m.find()) return s;
+        android.text.SpannableStringBuilder out = new android.text.SpannableStringBuilder();
+        out.append(s, 0, m.start());
+        int at = out.length();
+        out.append("\uFFFC ");
+        out.setSpan(new GlyphSpan(new WeatherIcon("wind")), at, at + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        out.append(s, m.end(), s.length());
+        on.setContentDescription(s);
+        return out;
+    }
+
+    /** A drawable the size of the text's capitals, centred on them, as one character of a line. */
+    private static final class GlyphSpan extends android.text.style.ReplacementSpan {
+        private final android.graphics.drawable.Drawable glyph;
+        private final android.graphics.Rect cap = new android.graphics.Rect();
+
+        GlyphSpan(android.graphics.drawable.Drawable glyph) {
+            this.glyph = glyph;
+        }
+
+        private int side(android.graphics.Paint paint) {
+            paint.getTextBounds("H", 0, 1, cap);
+            return Math.round(cap.height() * 1.35f);
+        }
+
+        @Override
+        public int getSize(@NonNull android.graphics.Paint paint, CharSequence text, int start, int end,
+                           android.graphics.Paint.FontMetricsInt fm) {
+            return side(paint);
+        }
+
+        @Override
+        public void draw(@NonNull android.graphics.Canvas canvas, CharSequence text, int start, int end, float x,
+                         int top, int y, int bottom, @NonNull android.graphics.Paint paint) {
+            int side = side(paint);
+            int middle = y - cap.height() / 2;
+            glyph.setBounds(0, 0, side, side);
+            glyph.setAlpha(paint.getAlpha());
+            canvas.save();
+            canvas.translate(x, middle - side / 2f);
+            glyph.draw(canvas);
+            canvas.restore();
+        }
     }
 
     /** "-3", "14" or "10°C" to whole degrees; null when there is no number. */

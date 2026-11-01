@@ -81,9 +81,13 @@ final class Welcome {
     /** clock_gauge: the time in a ring of the day or night that is left, and the row holding it beside the date. */
     private RingGauge clockGauge;
     private LinearLayout clockGaugeRow;
+    /** weather_place and weather_mono (Config). */
+    private boolean showPlace = true, mono;
     /** The clock's own line (the time and AM/PM), hidden while the ring shows the time. */
     private View clockLine;
     private static final float GAUGE_DP = 84, GAUGE_CENTRE_SP = 22;
+    /** "15:57" is wider than "10°": smaller, so it stays inside the ring. */
+    private static final float CLOCK_CENTRE_SP = 18;
     /** The clock's ring is wider than tall, so the end labels ("06:54") fit beside the same size of ring. */
     private static final float CLOCK_GAUGE_WIDTH_DP = 100;
     /** The icon now beside the line, by name; empty for none. */
@@ -145,6 +149,8 @@ final class Welcome {
         if (cfg.nextSunTime) w.addSunLine(cfg, main);
         if (cfg.clockGauge && cfg.headerBottom) w.addClockGauge(cfg, root, main);
         if (!cfg.weatherSource.isEmpty()) {
+            w.showPlace = cfg.weatherPlace;
+            w.mono = cfg.weatherMono;
             w.weather = WeatherLine.create(activity, cfg.weatherSource, main, w::showWeather);
             if (w.weather != null) w.addWeather(root, root.indexOfChild(content));
         }
@@ -545,7 +551,7 @@ final class Welcome {
         clockGaugeRow.addView(block, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         clockLine = (View) clock.getParent();
-        clockGauge = new RingGauge(activity, clock.getTypeface(), GAUGE_CENTRE_SP);
+        clockGauge = new RingGauge(activity, clock.getTypeface(), CLOCK_CENTRE_SP);
         LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(Math.round(CLOCK_GAUGE_WIDTH_DP * density),
                 Math.round(GAUGE_DP * density));
         // The ring's own width leaves room either side of it for the labels; less margin, so the gap matches the weather's.
@@ -682,7 +688,7 @@ final class Welcome {
         boolean gauge = current != null && high != null && low != null && !range[2].isEmpty() && !range[3].isEmpty();
         weatherGauge.setVisibility(gauge ? View.VISIBLE : View.GONE);
         if (gauge) {
-            weatherGauge.showTemperature(current, low, high);
+            weatherGauge.showTemperature(current, low, high, mono);
             weatherGauge.setContentDescription(null);
             temp = range[2].substring(0, 1).toUpperCase(Locale.getDefault()) + range[2].substring(1);
             summary = range[3];
@@ -718,13 +724,13 @@ final class Welcome {
             weatherPlace.setText(place.toUpperCase(here));
         }
         weatherSummary.setVisibility(split ? View.VISIBLE : View.GONE);
-        weatherPlace.setVisibility(place.isEmpty() ? View.GONE : View.VISIBLE);
+        weatherPlace.setVisibility(place.isEmpty() || !showPlace ? View.GONE : View.VISIBLE);
         // The add-on's icon before the first line, no taller than its capitals.
         int size = Math.round((weatherGauge.getVisibility() == View.VISIBLE ? 15 : split ? 20 : 16) * density);
         if (WeatherIcon.known(icon)) {
             android.graphics.drawable.Drawable now = weatherText.getCompoundDrawables()[0];
             if (!icon.equals(weatherIcon) || now == null || now.getBounds().width() != size) {
-                WeatherIcon d = new WeatherIcon(icon);
+                WeatherIcon d = new WeatherIcon(icon, mono);
                 d.setBounds(0, 0, size, size);
                 weatherText.setCompoundDrawables(d, null, null, null);
                 weatherText.setCompoundDrawablePadding(Math.round(8 * density));

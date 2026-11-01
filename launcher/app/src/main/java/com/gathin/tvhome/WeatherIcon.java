@@ -18,13 +18,20 @@ final class WeatherIcon extends Drawable {
     private static final int SUN = 0xFFFFD36B, MOON = 0xFFF2E6C8, CLOUD = 0xFFFFFFFF, DROP = 0xFF8FD3FF,
             BOLT = 0xFFFFC94A, MIST = 0xCCFFFFFF, SHADE = 0x59000000;
     private final String kind;
+    /** weather_mono: every part in white, the mist and the shade keeping their own opacity. */
+    private final boolean mono;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final Path other = new Path();
 
     WeatherIcon(String kind) {
+        this(kind, false);
+    }
+
+    WeatherIcon(String kind, boolean mono) {
         this.kind = kind;
+        this.mono = mono;
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeCap(Paint.Cap.ROUND);
     }
@@ -92,7 +99,7 @@ final class WeatherIcon extends Drawable {
                 break;
             case "wind":
                 // Three gusts, the upper two curling at their ends.
-                line.setColor(shade ? SHADE : CLOUD);
+                line.setColor(tint(shade ? SHADE : CLOUD));
                 line.setStrokeWidth(0.085f * s);
                 line.setStrokeJoin(Paint.Join.ROUND);
                 path.reset();
@@ -119,7 +126,7 @@ final class WeatherIcon extends Drawable {
                 path.lineTo(0.54f * s, 0.74f * s);
                 path.lineTo(0.6f * s, 0.62f * s);
                 path.close();
-                fill.setColor(shade ? SHADE : BOLT);
+                fill.setColor(tint(shade ? SHADE : BOLT));
                 c.drawPath(path, fill);
                 break;
             default:
@@ -129,9 +136,9 @@ final class WeatherIcon extends Drawable {
 
     private void sun(Canvas c, float s, float cx, float cy, float r, boolean shade) {
         int colour = shade ? SHADE : SUN;
-        fill.setColor(colour);
+        fill.setColor(tint(colour));
         c.drawCircle(cx * s, cy * s, r * s, fill);
-        line.setColor(colour);
+        line.setColor(tint(colour));
         line.setStrokeWidth(0.055f * s);
         for (int i = 0; i < 8; i++) {
             double a = Math.PI / 4 * i;
@@ -147,7 +154,7 @@ final class WeatherIcon extends Drawable {
         other.reset();
         other.addCircle((cx + r * 0.55f) * s, (cy - r * 0.35f) * s, r * 0.85f * s, Path.Direction.CW);
         path.op(other, Path.Op.DIFFERENCE);
-        fill.setColor(shade ? SHADE : MOON);
+        fill.setColor(tint(shade ? SHADE : MOON));
         c.drawPath(path, fill);
     }
 
@@ -160,20 +167,25 @@ final class WeatherIcon extends Drawable {
         path.addRoundRect((0.2f + dx) * s, (0.56f + dy) * s, (0.87f + dx) * s, (0.75f + dy) * s,
                 0.095f * s, 0.095f * s, Path.Direction.CW);
         path.setFillType(Path.FillType.WINDING);
-        fill.setColor(shade ? SHADE : CLOUD);
+        fill.setColor(tint(shade ? SHADE : CLOUD));
         c.drawPath(path, fill);
     }
 
     /** Short lines, four coordinates (x1, y1, x2, y2) each, in units of the side. */
     private void strokes(Canvas c, float s, int colour, float[] xy) {
-        line.setColor(colour);
+        line.setColor(tint(colour));
         line.setStrokeWidth(0.06f * s);
         for (int i = 0; i + 3 < xy.length; i += 4) c.drawLine(xy[i] * s, xy[i + 1] * s, xy[i + 2] * s, xy[i + 3] * s, line);
     }
 
     private void dots(Canvas c, float s, int colour, float r, float[] xy) {
-        fill.setColor(colour);
+        fill.setColor(tint(colour));
         for (int i = 0; i + 1 < xy.length; i += 2) c.drawCircle(xy[i] * s, xy[i + 1] * s, r * s, fill);
+    }
+
+    /** The colour itself, or with weather_mono white at the colour's own opacity (a shade stays a shade). */
+    private int tint(int colour) {
+        return !mono || colour == SHADE ? colour : (colour & 0xFF000000) | 0x00FFFFFF;
     }
 
     @Override

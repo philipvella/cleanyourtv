@@ -24,7 +24,7 @@ final class RingGauge extends View {
     private static final float WASH = 0.6f;
     private static final int RING_ALPHA = 0xC0;
     /** The opacity of the ring's passed part, when it is dimmed. */
-    private static final int PASSED_ALPHA = 0x48;
+    private static final int PASSED_ALPHA = 0x70;
     /** Temperature, °C, to colour: icy blue, sky blue, green, warm yellow, orange. */
     private static final float[] STOPS = {-5, 5, 14, 22, 30};
     private static final int[] COLOURS = {0xFF7AA7FF, 0xFF5AC8FA, 0xFF8EDB6A, 0xFFFFD24D, 0xFFFF8A3D};
@@ -86,10 +86,11 @@ final class RingGauge extends View {
         invalidate();
     }
 
-    /** Today's temperature range, the temperature now in the middle. */
-    void showTemperature(int now, int low, int high) {
+    /** Today's temperature range, the temperature now in the middle; with mono a white ring instead of the tints. */
+    void showTemperature(int now, int low, int high, boolean mono) {
         int lo = Math.min(low, high), hi = Math.max(low, high);
-        show(now + "°", String.valueOf(lo), String.valueOf(hi), position(now, lo, hi), colour(lo), colour(hi), false);
+        show(now + "°", String.valueOf(lo), String.valueOf(hi), position(now, lo, hi),
+                mono ? Color.WHITE : colour(lo), mono ? Color.WHITE : colour(hi), false);
     }
 
     /** Where a value sits between the low (0) and the high (1); the middle when they are equal. */

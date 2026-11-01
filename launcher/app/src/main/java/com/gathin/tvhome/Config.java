@@ -170,6 +170,8 @@ final class Config {
     final boolean nextSunTime;
     /** clock_gauge: with header_bottom, the time in a ring of the day or night that is left, at latitude and longitude. */
     final boolean clockGauge;
+    /** weather_place: the place's name under the weather (on by default); weather_mono: the weather all in white. */
+    final boolean weatherPlace, weatherMono;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -317,7 +319,9 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge) {
+                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono) {
+        this.weatherPlace = weatherPlace;
+        this.weatherMono = weatherMono;
         this.clockGauge = clockGauge;
         this.nextSunTime = nextSunTime;
         this.seasonalDates = Collections.unmodifiableList(seasonalDates);
@@ -533,6 +537,7 @@ final class Config {
         String latitude = res.getString(R.string.latitude).trim(), longitude = res.getString(R.string.longitude).trim();
         boolean nextSunTime = res.getBoolean(R.bool.next_sun_time);
         boolean clockGauge = res.getBoolean(R.bool.clock_gauge);
+        boolean weatherPlace = res.getBoolean(R.bool.weather_place), weatherMono = res.getBoolean(R.bool.weather_mono);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -662,6 +667,8 @@ final class Config {
             }
             nextSunTime = bool(json, "next_sun_time", nextSunTime);
             clockGauge = bool(json, "clock_gauge", clockGauge);
+            weatherPlace = bool(json, "weather_place", weatherPlace);
+            weatherMono = bool(json, "weather_mono", weatherMono);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -778,7 +785,7 @@ final class Config {
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
                 pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
-                latitude, longitude, nextSunTime, clockGauge);
+                latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono);
     }
 
     /**

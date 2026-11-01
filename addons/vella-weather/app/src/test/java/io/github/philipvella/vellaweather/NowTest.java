@@ -44,4 +44,10 @@ public class NowTest {
         assertEquals("snow", Now.icon(71, true));
         assertEquals("thunder", Now.icon(95, false));
     }
+
+    @Test
+    public void todaysRangeReadsHighThenLow() {
+        org.junit.Assert.assertEquals("High 14° Low 6°", Now.range(13.6, 5.8));
+        org.junit.Assert.assertEquals("", Now.range(Double.NaN, 5));
+    }
 }

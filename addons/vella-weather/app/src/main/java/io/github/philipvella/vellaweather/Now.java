@@ -42,15 +42,25 @@ final class Now {
     /** Fetches the weather now and returns the line and its icon. */
     static Reading fetch(double latitude, double longitude) throws IOException, JSONException {
         String where = String.format(Locale.ROOT, "latitude=%.4f&longitude=%.4f", latitude, longitude);
-        JSONObject current = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
+        JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
                 + "&current=temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m"
-                + "&wind_speed_unit=ms&timezone=auto").getJSONObject("current");
+                + "&daily=temperature_2m_max,temperature_2m_min&forecast_days=1"
+                + "&wind_speed_unit=ms&timezone=auto");
+        JSONObject current = reply.getJSONObject("current");
+        JSONObject daily = reply.optJSONObject("daily");
         double temp = current.getDouble("temperature_2m");
         double humidity = current.getDouble("relative_humidity_2m");
         int code = snowIfCold(current.getInt("weather_code"), temp, humidity);
         boolean day = current.getInt("is_day") == 1;
         double wind = current.optDouble("wind_speed_10m", 0);
-        return new Reading(line(temp, code, day, wind), icon(code, day), temp(temp), summary(code, day, wind));
+        String range = "";
+        if (daily != null && daily.optJSONArray("temperature_2m_max") != null && daily.optJSONArray("temperature_2m_min") != null) {
+            range = range(daily.getJSONArray("temperature_2m_max").optDouble(0, Double.NaN),
+                    daily.getJSONArray("temperature_2m_min").optDouble(0, Double.NaN));
+        }
+        String summary = summary(code, day, wind);
+        if (!range.isEmpty()) summary = sky(code, day) + " · " + range + " · wind " + Math.round(wind) + " m/s";
+        return new Reading(line(temp, code, day, wind), icon(code, day), temp(temp), summary);
     }
 
     /**
@@ -66,6 +76,12 @@ final class Now {
         if (code >= 95) return "thunder";
         if (code >= 61) return "rain";
         return "cloudy";
+    }
+
+    /** Today's "High 14° Low 6°"; empty when either is missing. */
+    static String range(double max, double min) {
+        if (Double.isNaN(max) || Double.isNaN(min)) return "";
+        return "High " + Math.round(max) + "° Low " + Math.round(min) + "°";
     }
 
     /** "22°C · light rain · wind 10 m/s". */

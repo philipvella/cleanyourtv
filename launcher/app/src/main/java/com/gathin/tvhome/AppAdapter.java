@@ -218,6 +218,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> appLabels, appBanners;
     /** Every app tile is its icon on a card tinted from that icon, never its banner (config.xml, uniform_tiles). */
     private final boolean uniformTiles;
+    /** mono_tiles (Config). */
+    private final boolean monoTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
     private final List<Entry> items = new ArrayList<>();
@@ -248,6 +250,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
         this.uniformTiles = cfg.uniformTiles;
+        this.monoTiles = cfg.monoTiles;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -452,7 +455,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
         }
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot, monoTiles);
     }
 
     @Override
@@ -507,6 +510,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setText(e.label);
             h.label.setVisibility(uniformTiles ? View.GONE : View.VISIBLE);
         }
+        if (h.mono) h.colour(focused, false);
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
             if (tileMenu) {
@@ -897,10 +901,44 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final boolean overshoot;
         /** A dock tile: it grows in place without advanced_effects' lift, which reads as off-centre in the band (#2135). */
         boolean inDock;
+        /** mono_tiles: greyscale until focused; the colour's fade and how far it has come (0 grey, 1 full colour). */
+        final boolean mono;
+        private android.animation.ValueAnimator fade;
+        private float saturation = 1f;
+        private final android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
+
+        /** In colour while focused, grey otherwise; faded over 200 ms when animated. */
+        void colour(boolean focused, boolean animated) {
+            float target = focused ? 1f : 0f;
+            if (fade != null) fade.cancel();
+            if (!animated) {
+                saturate(target);
+                return;
+            }
+            fade = android.animation.ValueAnimator.ofFloat(saturation, target);
+            fade.setDuration(focused ? 200 : 260);
+            fade.addUpdateListener(a -> saturate((float) a.getAnimatedValue()));
+            fade.start();
+        }
+
+        /** The banner, the icon and the card's fill at this saturation; no filter at all at full colour. */
+        private void saturate(float s) {
+            saturation = s;
+            android.graphics.ColorFilter f = null;
+            if (s < 0.999f) {
+                matrix.setSaturation(s);
+                f = new android.graphics.ColorMatrixColorFilter(matrix);
+            }
+            banner.setColorFilter(f);
+            icon.setColorFilter(f);
+            Drawable fill = card.getBackground();
+            if (fill != null) fill.mutate().setColorFilter(f);
+        }
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion, float restNameAlpha, boolean overshoot) {
+               boolean reducedMotion, float restNameAlpha, boolean overshoot, boolean mono) {
             super(v);
+            this.mono = mono;
             card = v.findViewById(R.id.card);
             cardBackground = card.getBackground();
             banner = v.findViewById(R.id.banner);
@@ -932,6 +970,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
+                if (this.mono) colour(focused, animations && !reducedMotion);
                 view.animate().cancel();
                 banner.animate().cancel();
                 name.animate().cancel();

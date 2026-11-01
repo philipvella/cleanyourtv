@@ -511,6 +511,9 @@
          the sun's yellow, the rain's blue and the ring's warm and cold tints. Off by default; a theme can set
          "weather_mono": true. -->
     <bool name="weather_mono">false</bool>
+    <!-- App tiles in greyscale, fading to their own colours only while focused, so the screen stays calm and the
+         focused app stands out. Off by default; a theme can set "mono_tiles": true. -->
+    <bool name="mono_tiles">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

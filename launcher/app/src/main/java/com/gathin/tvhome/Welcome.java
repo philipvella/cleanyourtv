@@ -610,7 +610,7 @@ final class Welcome {
             summary = range[3];
         }
         // With temp and summary: two lines that mirror the clock and date on the right, the temperature in the clock's
-        // type and "MOSTLY SUNNY · WIND 2 M/S · ST ALBANS" in the date's, so the two blocks line up row for row.
+        // type and "MOSTLY SUNNY · WIND 2 M/S" in the date's with the place under it, so the blocks line up row for row.
         // Without them: the add-on's one line, and the place under it.
         boolean split = !temp.isEmpty() && !summary.isEmpty();
         Locale here = Locale.getDefault();
@@ -619,14 +619,18 @@ final class Welcome {
             matchType(weatherSummary, R.id.date);
             if (gauge) weatherGauge.face(weatherText.getTypeface());
             weatherText.setText(temp);
-            weatherSummary.setText((place.isEmpty() ? summary : summary + " · " + place).toUpperCase(here));
+            weatherSummary.setText(summary.toUpperCase(here));
+            // The place on a line of its own under the details, in the date's type, a little dimmer.
+            matchType(weatherPlace, R.id.date);
+            weatherPlace.setTextColor(0xB3FFFFFF);
+            weatherPlace.setText(place.toUpperCase(here));
         } else {
             weatherText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             weatherText.setText(line);
             weatherPlace.setText(place.toUpperCase(here));
         }
         weatherSummary.setVisibility(split ? View.VISIBLE : View.GONE);
-        weatherPlace.setVisibility(split || place.isEmpty() ? View.GONE : View.VISIBLE);
+        weatherPlace.setVisibility(place.isEmpty() ? View.GONE : View.VISIBLE);
         // The add-on's icon before the first line, no taller than its capitals.
         int size = Math.round((split ? 20 : 16) * density);
         if (WeatherIcon.known(icon)) {

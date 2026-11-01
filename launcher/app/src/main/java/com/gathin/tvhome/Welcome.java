@@ -47,6 +47,10 @@ final class Welcome {
     static final float HERO_MAX_SP = 60, HERO_MIN_SP = 40, CAPTION_SP = 34;
     /** The headline never starts above this, in dp: clear of the top-right pills (26dp padding and 42dp pills). */
     static final float HERO_MIN_TOP_DP = 88;
+    /** The highest content_lift can take the hero: clear of the top bar's 34 to 42dp buttons. */
+    static final float HERO_LIFTED_MIN_TOP_DP = 64;
+    /** content_lift in px. */
+    private int lift;
     /** The headline's centre, as a share of the screen's height (the middle of the upper third is 1/6). */
     static final float HERO_CENTRE = 0.21f;
     /** Gap between the caption's baseline area and the dock band's top edge, in dp. */
@@ -133,9 +137,11 @@ final class Welcome {
             ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) wrapper.getLayoutParams();
             // The clock stacked over the date (date_below_clock) is taller than the clock and date side by side.
             float strip = cfg.headerBottom && cfg.dateBelowClock ? BOTTOM_STRIP_STACKED_DP : BOTTOM_STRIP_DP;
-            lp.bottomMargin = Math.round(strip * w.density);
+            // content_lift raises the dock with the rest; the hero follows in addHero.
+            lp.bottomMargin = Math.round((strip + cfg.contentLift) * w.density);
             wrapper.setLayoutParams(lp);
         }
+        w.lift = Math.round(cfg.contentLift * w.density);
         if (!cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty()) {
             w.heroFace = "montserrat".equalsIgnoreCase(cfg.heroFont) ? w.font(R.font.montserrat_light) : null;
             w.addHero(root, at, grid, cfg.heroText, cfg.heroCaption, cfg.captionPosition.trim().toLowerCase(Locale.ROOT));
@@ -203,6 +209,8 @@ final class Welcome {
             int lines = text.replace("\\n", "\n").split("\n", -1).length;
             float block = headline.getLineHeight() * Math.min(3, lines);
             lp.topMargin = Math.max(Math.round(HERO_MIN_TOP_DP * density), Math.round(screenH * HERO_CENTRE - block * 0.5f));
+            // content_lift: up with the dock, but never under the top bar's buttons.
+            lp.topMargin = Math.max(Math.round(HERO_LIFTED_MIN_TOP_DP * density), lp.topMargin - lift);
             root.addView(headline, at++, lp);
         }
         if (!captionText.isEmpty()) {

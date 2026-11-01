@@ -517,6 +517,10 @@
     <!-- App tiles as panes of glass: a rim that catches the light, a soft sheen and a little of the wallpaper showing
          through, solid only while focused. Drawn, not blurred. Off by default; a theme can set "glass_tiles": true. -->
     <bool name="glass_tiles">false</bool>
+    <!-- With hero_text or the bottom strip (header_bottom, weather_source): the dock and the hero above it raised by
+         this many dp (0 to 120), the top bar's buttons staying where they are. 0 by default; a theme can set
+         "content_lift": 24. -->
+    <integer name="content_lift">0</integer>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

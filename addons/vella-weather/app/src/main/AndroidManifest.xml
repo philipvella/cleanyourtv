@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingLeanbackLauncher">
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -7,7 +9,7 @@
     <!-- The only permission: Open-Meteo, for the weather at the place set in options.xml. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- No activity and no service: the app runs only while the launcher asks for the line. -->
+    <!-- No service: the app runs only while the launcher asks for the line, or while the forecast is open. -->
     <application
         android:allowBackup="false"
         android:banner="@drawable/banner"
@@ -22,5 +24,18 @@
             android:name=".WeatherProvider"
             android:authorities="io.github.philipvella.vellaweather.now"
             android:exported="true" />
+
+        <!-- The full forecast: the launcher opens it with OK on the weather (docs/modules.md, weather_source). Not in
+             the app list; Back returns to Home. -->
+        <activity
+            android:name=".ForecastActivity"
+            android:exported="true"
+            android:label="@string/forecast_title"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+            <intent-filter>
+                <action android:name="com.gathin.tvhome.action.WEATHER_FORECAST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

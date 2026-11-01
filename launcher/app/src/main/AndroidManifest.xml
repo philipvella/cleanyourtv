@@ -25,6 +25,10 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- weather_source: the add-on's forecast screen, opened with OK on the weather (Welcome). -->
+        <intent>
+            <action android:name="com.gathin.tvhome.action.WEATHER_FORECAST" />
+        </intent>
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />

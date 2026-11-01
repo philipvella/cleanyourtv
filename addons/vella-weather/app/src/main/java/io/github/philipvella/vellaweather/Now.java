@@ -124,7 +124,7 @@ final class Now {
                 + 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh) - 4.686035;
     }
 
-    private static JSONObject get(String url) throws IOException, JSONException {
+    static JSONObject get(String url) throws IOException, JSONException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(TIMEOUT_MS);
         connection.setReadTimeout(TIMEOUT_MS);

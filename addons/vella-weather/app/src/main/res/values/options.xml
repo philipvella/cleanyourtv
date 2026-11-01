@@ -6,4 +6,5 @@
     <string name="latitude" translatable="false">51.755</string>
     <string name="longitude" translatable="false">-0.336</string>
     <string name="app_name" translatable="false">Vella weather</string>
+    <string name="forecast_title" translatable="false">Forecast</string>
 </resources>

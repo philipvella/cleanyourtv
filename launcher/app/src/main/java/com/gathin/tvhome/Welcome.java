@@ -1,10 +1,15 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.os.Handler;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -25,7 +30,8 @@ import androidx.recyclerview.widget.RecyclerView;
  * as the grid scrolls under them.</li>
  * <li>header_bottom: the clock and date at the bottom right, the greeting hidden; the pills stay at the top.</li>
  * <li>pill_labels_only: the top pills as text-only chips.</li>
- * <li>weather_source: one weather line and its place at the bottom left, from an add-on (WeatherLine).</li>
+ * <li>weather_source: one weather line and its place at the bottom left, from an add-on (WeatherLine). When the
+ * add-on has a forecast screen ({@value #FORECAST}), Down from the app row focuses the weather and OK opens it.</li>
  * </ul>
  * With none of them set, {@link #attach} returns null and Home is exactly as before: no view is added and no font is
  * loaded.
@@ -73,6 +79,11 @@ final class Welcome {
     /** The icon now beside the line, by name; empty for none. */
     private String weatherIcon = "";
     private WeatherLine weather;
+    /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
+    static final String FORECAST = "com.gathin.tvhome.action.WEATHER_FORECAST";
+    private Intent forecast;
+    /** Up from the focused weather: back to the app row (MainActivity). */
+    private Runnable weatherUp;
 
     private Welcome(Activity activity) {
         this.activity = activity;
@@ -125,6 +136,8 @@ final class Welcome {
         if (w.bottomCaption != null) w.captionFrame = w.plain(w.bottomCaption);
         if (cfg.headerBottom) w.clockFrame = w.plain(activity.findViewById(R.id.leftBlock));
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
+        if (w.weatherBlock != null) w.forecast = w.forecastIntent(cfg.weatherSource.trim());
+        if (w.forecast != null) w.makeWeatherOpen();
         return w;
     }
 
@@ -544,6 +557,55 @@ final class Welcome {
         t.setLetterSpacing(model.getLetterSpacing());
         t.setTextColor(model.getCurrentTextColor());
         t.setIncludeFontPadding(model.getIncludeFontPadding());
+    }
+
+    /** The add-on's forecast screen, when the weather_source package has one; else null. */
+    private Intent forecastIntent(String pkg) {
+        Intent i = new Intent(FORECAST).setPackage(pkg);
+        return activity.getPackageManager().resolveActivity(i, 0) == null ? null : i;
+    }
+
+    /** The weather takes focus (Down from the app row), shows a soft frame while focused, and OK opens the forecast. */
+    private void makeWeatherOpen() {
+        weatherBlock.setFocusable(true);
+        weatherBlock.setClickable(true);
+        weatherBlock.setOnClickListener(v -> {
+            try {
+                activity.startActivity(forecast);
+            } catch (ActivityNotFoundException | SecurityException gone) {
+                // The add-on was removed or changed since Home started: nothing to open.
+            }
+        });
+        weatherBlock.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (weatherUp != null) weatherUp.run();
+                return true;
+            }
+            // Nothing else down here takes focus: the other arrows stay on the weather.
+            return keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+        });
+        GradientDrawable ring = new GradientDrawable();
+        ring.setColor(0x26FFFFFF);
+        ring.setStroke(Math.round(1.5f * density), 0x80FFFFFF);
+        ring.setCornerRadius(14 * density);
+        int in = Math.round(4 * density);
+        View frame = weatherFrame != null ? weatherFrame : weatherBlock;
+        InsetDrawable focusRing = new InsetDrawable(ring, in);
+        weatherBlock.setOnFocusChangeListener((v, focused) -> {
+            // An inset background replaces the frame's padding with its own; keep the frame's, so nothing moves.
+            int l = frame.getPaddingLeft(), t = frame.getPaddingTop(), r = frame.getPaddingRight(), b = frame.getPaddingBottom();
+            frame.setBackground(focused ? focusRing : null);
+            frame.setPadding(l, t, r, b);
+        });
+    }
+
+    /** Down from the app row: focuses the weather when it can open the forecast and is on screen. */
+    boolean focusWeather(Runnable up) {
+        if (forecast == null || weatherBlock == null || weatherBlock.getVisibility() != View.VISIBLE) return false;
+        weatherUp = up;
+        return weatherBlock.requestFocus();
     }
 
     // ---- lifecycle ----------------------------------------------------------------------------------

@@ -2374,7 +2374,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // One row: Up leaves for the top bar, Down has nowhere to go, and Left/Right walk the whole row,
             // stopping at its two ends (the default focus search scrolls the row to the next tile).
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return true;
+            // Down: the weather, when it opens a forecast (weather_source); else nowhere.
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (welcome != null && welcome.focusWeather(() -> focusTile(lastFocused))) {
+                    grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+                }
+                return true;
+            }
             boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
             int last = adapter.focusablePosition(count - 1);
             if (forward && position >= last) {
@@ -2403,6 +2409,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
             if (position >= lastRowStart) {
                 if (adapter.isLibraryAt(count)) focusLibrary();
+                else if (welcome != null && welcome.focusWeather(() -> focusTile(lastFocused))) {
+                    grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+                }
                 return true;
             }
             target = Math.min(position + COLUMNS, count - 1);

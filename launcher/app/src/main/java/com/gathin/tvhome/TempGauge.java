@@ -17,8 +17,11 @@ import android.view.View;
  * PlainTextFrame turns into paths.
  */
 final class TempGauge extends View {
-    /** The ring opens at the bottom: it starts at 135° (bottom left) and sweeps 270° clockwise. */
-    private static final float START = 135f, SWEEP = 270f;
+    /** The ring opens at the bottom: it starts at 150° (bottom left) and sweeps 240° clockwise, leaving room for the numbers. */
+    private static final float START = 150f, SWEEP = 240f;
+    /** How far each colour is washed toward white, and the ring's opacity: a hint of warm or cold, not a rainbow. */
+    private static final float WASH = 0.6f;
+    private static final int RING_ALPHA = 0xC0;
     /** Temperature, °C, to colour: icy blue, sky blue, green, warm yellow, orange. */
     private static final float[] STOPS = {-5, 5, 14, 22, 30};
     private static final int[] COLOURS = {0xFF7AA7FF, 0xFF5AC8FA, 0xFF8EDB6A, 0xFFFFD24D, 0xFFFF8A3D};
@@ -29,6 +32,7 @@ final class TempGauge extends View {
     private final Paint big = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint small = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF oval = new RectF();
+    private final android.graphics.Rect digit = new android.graphics.Rect();
     private int now, low, high;
     private boolean shaderStale = true;
 
@@ -88,6 +92,11 @@ final class TempGauge extends View {
         return COLOURS[COLOURS.length - 1];
     }
 
+    private static int muted(int c) {
+        int soft = blend(c, Color.WHITE, WASH);
+        return (soft & 0x00FFFFFF) | (RING_ALPHA << 24);
+    }
+
     private static int blend(int a, int b, float f) {
         return Color.rgb(Math.round(Color.red(a) + (Color.red(b) - Color.red(a)) * f),
                 Math.round(Color.green(a) + (Color.green(b) - Color.green(a)) * f),
@@ -107,7 +116,7 @@ final class TempGauge extends View {
         float cx = w / 2, cy = side / 2;
         oval.set(cx - side / 2 + inset, cy - side / 2 + inset, cx + side / 2 - inset, cy + side / 2 - inset);
         if (shaderStale) {
-            int lo = colour(low), hi = colour(high);
+            int lo = muted(colour(low)), hi = muted(colour(high));
             SweepGradient sweep = new SweepGradient(cx, cy, new int[]{lo, hi, hi, lo},
                     new float[]{0f, SWEEP / 360f, (SWEEP + 45f) / 360f, 1f});
             Matrix turn = new Matrix();
@@ -122,7 +131,7 @@ final class TempGauge extends View {
         double a = Math.toRadians(START + SWEEP * position(now, low, high));
         float r = oval.width() / 2;
         float dx = cx + (float) (r * Math.cos(a)), dy = cy + (float) (r * Math.sin(a));
-        dot.setColor(0xCC000000);
+        dot.setColor(0x99000000);
         canvas.drawCircle(dx, dy, 5.5f * density, dot);
         dot.setColor(Color.WHITE);
         canvas.drawCircle(dx, dy, 3.5f * density, dot);
@@ -133,8 +142,9 @@ final class TempGauge extends View {
         Paint.FontMetrics m = big.getFontMetrics();
         canvas.drawText(t, cx + degree / 2, cy - (m.ascent + m.descent) / 2, big);
 
-        // The low and the high under the ring's two ends.
-        float endY = cy + (float) (r * Math.sin(Math.toRadians(START))) + small.getTextSize() * 0.9f;
+        // The low and the high under the ring's two ends, clear of the round cap and of the dot when it sits there.
+        small.getTextBounds("0", 0, 1, digit);
+        float endY = cy + (float) (r * Math.sin(Math.toRadians(START))) + 5.5f * density + 3 * density + digit.height();
         float endX = (float) (r * Math.cos(Math.toRadians(START)));
         canvas.drawText(String.valueOf(low), cx + endX, endY, small);
         canvas.drawText(String.valueOf(high), cx - endX, endY, small);

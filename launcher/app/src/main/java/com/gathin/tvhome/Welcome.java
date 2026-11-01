@@ -77,8 +77,15 @@ final class Welcome {
     private LinearLayout weatherBlock;
     private TextView weatherText, weatherSummary, weatherPlace;
     /** Today's range as a round gauge, when the add-on gives "high", "low", "sky" and "details". */
-    private TempGauge weatherGauge;
-    private static final float GAUGE_DP = 76;
+    private RingGauge weatherGauge;
+    /** clock_gauge: the time in a ring of the day or night that is left, and the row holding it beside the date. */
+    private RingGauge clockGauge;
+    private LinearLayout clockGaugeRow;
+    /** The clock's own line (the time and AM/PM), hidden while the ring shows the time. */
+    private View clockLine;
+    private static final float GAUGE_DP = 84, GAUGE_CENTRE_SP = 22;
+    /** The clock's ring is wider than tall, so the end labels ("06:54") fit beside the same size of ring. */
+    private static final float CLOCK_GAUGE_WIDTH_DP = 100;
     /** The icon now beside the line, by name; empty for none. */
     private String weatherIcon = "";
     private WeatherLine weather;
@@ -101,7 +108,7 @@ final class Welcome {
     static boolean wanted(Config cfg) {
         return !cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty() || cfg.headerBottom || cfg.pillLabelsOnly
                 || !cfg.weatherSource.isEmpty() || cfg.smallPills
-                || (cfg.nextSunTime && !cfg.latitude.isEmpty());
+                || ((cfg.nextSunTime || cfg.clockGauge) && !cfg.latitude.isEmpty());
     }
 
     /**
@@ -136,6 +143,7 @@ final class Welcome {
         }
         if (cfg.smallPills) w.smallPills();
         if (cfg.nextSunTime) w.addSunLine(cfg, main);
+        if (cfg.clockGauge && cfg.headerBottom) w.addClockGauge(cfg, root, main);
         if (!cfg.weatherSource.isEmpty()) {
             w.weather = WeatherLine.create(activity, cfg.weatherSource, main, w::showWeather);
             if (w.weather != null) w.addWeather(root, root.indexOfChild(content));
@@ -144,7 +152,7 @@ final class Welcome {
         if (w.heroGroup != null) w.plain(w.heroGroup);
         else if (w.headline != null) w.plain(w.headline);
         if (w.bottomCaption != null) w.captionFrame = w.plain(w.bottomCaption);
-        if (cfg.headerBottom) w.clockFrame = w.plain(activity.findViewById(R.id.leftBlock));
+        if (cfg.headerBottom) w.clockFrame = w.plain(w.clockGaugeRow != null ? w.clockGaugeRow : activity.findViewById(R.id.leftBlock));
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
         if (w.weatherBlock != null) w.forecast = w.forecastIntent(cfg.weatherSource.trim());
         if (w.forecast != null) w.makeWeatherOpen();
@@ -486,12 +494,7 @@ final class Welcome {
 
     /** next_sun_time: one line under the date, in the date's type, for the sun's next rise or set. */
     private void addSunLine(Config cfg, Handler main) {
-        try {
-            sunLat = Double.parseDouble(cfg.latitude);
-            sunLon = Double.parseDouble(cfg.longitude);
-        } catch (NumberFormatException e) {
-            return;   // no usable place: nothing to show
-        }
+        if (!place(cfg)) return;   // no usable place: nothing to show
         TextView date = activity.findViewById(R.id.date);
         if (date == null || !(date.getParent() instanceof LinearLayout)) return;
         LinearLayout column = (LinearLayout) date.getParent();
@@ -512,25 +515,100 @@ final class Welcome {
         this.main = main;
     }
 
-    /** Shows what the sun does next (Sun.next), then runs again at the start of the next minute. */
+    /** The theme's latitude and longitude as numbers; false when either is missing or not a number. */
+    private boolean place(Config cfg) {
+        try {
+            sunLat = Double.parseDouble(cfg.latitude);
+            sunLon = Double.parseDouble(cfg.longitude);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
+     * clock_gauge: the clock block (date and sun line) and a ring to its right, in one row centred on the ring, the
+     * mirror of the weather on the left. The ring holds the time, so the clock's own line goes.
+     */
+    private void addClockGauge(Config cfg, FrameLayout root, Handler main) {
+        if (!place(cfg)) return;
+        View block = activity.findViewById(R.id.leftBlock);
+        // Found before the block leaves the window: findViewById on the activity can't see a detached view.
+        TextView clock = block == null ? null : block.findViewById(R.id.clock);
+        if (clock == null || block.getParent() != root || !(block.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) block.getLayoutParams();
+        int at = root.indexOfChild(block);
+        root.removeView(block);
+        clockGaugeRow = new LinearLayout(activity);
+        clockGaugeRow.setOrientation(LinearLayout.HORIZONTAL);
+        clockGaugeRow.setGravity(Gravity.CENTER_VERTICAL);
+        clockGaugeRow.addView(block, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        clockLine = (View) clock.getParent();
+        clockGauge = new RingGauge(activity, clock.getTypeface(), GAUGE_CENTRE_SP);
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(Math.round(CLOCK_GAUGE_WIDTH_DP * density),
+                Math.round(GAUGE_DP * density));
+        // The ring's own width leaves room either side of it for the labels; less margin, so the gap matches the weather's.
+        glp.setMarginStart(Math.round((14 - (CLOCK_GAUGE_WIDTH_DP - GAUGE_DP) / 2) * density));
+        clockGaugeRow.addView(clockGauge, glp);
+        // The ring's labels reach past it; the row ends where the ring would, level with the weather's margin.
+        lp.rightMargin -= Math.round((CLOCK_GAUGE_WIDTH_DP - GAUGE_DP) / 2 * density);
+        root.addView(clockGaugeRow, at, lp);
+        clockLine.setVisibility(View.GONE);
+        this.main = main;
+    }
+
+    /** Day: muted sunshine to evening orange. Night: dusk indigo to the blue before dawn. */
+    private static final int DAY_FROM = 0xFFFFD36B, DAY_TO = 0xFFFF9A5C, NIGHT_FROM = 0xFF8C9EFF, NIGHT_TO = 0xFF7FC8FF;
+
+    /** The sun line (Sun.next) and the clock's ring (Sun.period), then again at the start of the next minute. */
     private void sunTick() {
         main.removeCallbacks(sunTick);
         java.time.ZoneId zone = java.time.ZoneId.systemDefault();
         java.time.LocalDateTime now = java.time.LocalDateTime.now(zone);
         java.time.LocalDate today = now.toLocalDate();
-        int[] next = Sun.next(now.getHour() * 60 + now.getMinute(), Sun.riseAndSet(today, sunLat, sunLon, zone),
-                Sun.riseAndSet(today.plusDays(1), sunLat, sunLon, zone));
-        if (next == null) {
-            sunLine.setVisibility(View.GONE);
-        } else {
-            java.time.LocalTime at = java.time.LocalTime.of((next[1] / 60) % 24, next[1] % 60);
-            String time = android.text.format.DateFormat.getTimeFormat(activity).format(
-                    java.util.Date.from(at.atDate(today).atZone(zone).toInstant()));
-            sunLine.setText(activity.getString(next[0] == 0 ? R.string.next_sunrise : R.string.next_sunset, time)
-                    .toUpperCase(Locale.getDefault()));
-            sunLine.setVisibility(View.VISIBLE);
+        int minute = now.getHour() * 60 + now.getMinute();
+        int[] sunToday = Sun.riseAndSet(today, sunLat, sunLon, zone);
+        int[] sunTomorrow = Sun.riseAndSet(today.plusDays(1), sunLat, sunLon, zone);
+        if (sunLine != null) {
+            int[] next = Sun.next(minute, sunToday, sunTomorrow);
+            if (next == null) {
+                sunLine.setVisibility(View.GONE);
+            } else {
+                sunLine.setText(activity.getString(next[0] == 0 ? R.string.next_sunrise : R.string.next_sunset,
+                        clockText(next[1], false)).toUpperCase(Locale.getDefault()));
+                sunLine.setVisibility(View.VISIBLE);
+            }
+        }
+        if (clockGauge != null) {
+            int[] period = Sun.period(minute, Sun.riseAndSet(today.minusDays(1), sunLat, sunLon, zone), sunToday, sunTomorrow);
+            boolean valid = System.currentTimeMillis() >= MainActivity.TIME_VALID_AFTER_MS;
+            // Before network time the clock block is hidden (MainActivity); so is the ring. Polar days get the plain clock.
+            clockGauge.setVisibility(valid && period != null ? View.VISIBLE : valid ? View.GONE : View.INVISIBLE);
+            clockLine.setVisibility(period == null ? View.VISIBLE : View.GONE);
+            if (period != null) {
+                boolean day = period[0] == 1;
+                float done = (minute - period[1]) / (float) Math.max(1, period[2] - period[1]);
+                clockGauge.show(clockText(minute, true), clockText(period[1], true), clockText(period[2], true), done,
+                        day ? DAY_FROM : NIGHT_FROM, day ? DAY_TO : NIGHT_TO, true);
+                clockGauge.setContentDescription(clockText(minute, true));
+            }
+            if (!valid) {
+                main.postDelayed(sunTick, 1_000L);
+                return;
+            }
         }
         main.postDelayed(sunTick, 60_000L - (System.currentTimeMillis() % 60_000L) + 50);
+    }
+
+    /** Minutes from midnight (any day) as the TV's 24 or 12-hour time; the ring's middle leaves out AM and PM. */
+    private String clockText(int minutes, boolean bare) {
+        int m = Math.floorMod(minutes, 1440);
+        boolean h24 = android.text.format.DateFormat.is24HourFormat(activity);
+        if (h24) return String.format(Locale.ROOT, "%02d:%02d", m / 60, m % 60);
+        int h = m / 60 % 12 == 0 ? 12 : m / 60 % 12;
+        String t = String.format(Locale.ROOT, "%d:%02d", h, m % 60);
+        return bare ? t : t + (m < 720 ? " AM" : " PM");
     }
 
     // ---- weather at the bottom left -----------------------------------------------------------------
@@ -541,7 +619,7 @@ final class Welcome {
         weatherBlock.setOrientation(LinearLayout.HORIZONTAL);
         weatherBlock.setGravity(Gravity.CENTER_VERTICAL);
         weatherBlock.setFocusable(false);
-        weatherGauge = new TempGauge(activity, inter != null ? inter.at(400) : font(R.font.outfit_regular));
+        weatherGauge = new RingGauge(activity, inter != null ? inter.at(400) : font(R.font.outfit_regular), GAUGE_CENTRE_SP);
         weatherGauge.setVisibility(View.GONE);
         int g = Math.round(GAUGE_DP * density);
         LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(g, g);
@@ -604,7 +682,7 @@ final class Welcome {
         boolean gauge = current != null && high != null && low != null && !range[2].isEmpty() && !range[3].isEmpty();
         weatherGauge.setVisibility(gauge ? View.VISIBLE : View.GONE);
         if (gauge) {
-            weatherGauge.set(current, low, high);
+            weatherGauge.showTemperature(current, low, high);
             weatherGauge.setContentDescription(null);
             temp = range[2].substring(0, 1).toUpperCase(Locale.getDefault()) + range[2].substring(1);
             summary = range[3];
@@ -803,7 +881,7 @@ final class Welcome {
 
     void start() {
         if (weather != null) weather.start();
-        if (sunLine != null) sunTick();
+        if (sunLine != null || clockGauge != null) sunTick();
     }
 
     void stop() {

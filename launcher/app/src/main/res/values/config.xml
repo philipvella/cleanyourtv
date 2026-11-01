@@ -500,6 +500,11 @@
          worked out offline at latitude and longitude. Hidden without them. Off by default; a theme can set
          "next_sun_time": true. -->
     <bool name="next_sun_time">false</bool>
+    <!-- With header_bottom: the time in the middle of a ring that spans today's daylight (sunrise to sunset) or the
+         night (sunset to sunrise), a dot at now and the part already passed dimmed, so the bright stretch is what is
+         left. Worked out offline at latitude and longitude; the plain clock without them. Off by default; a theme can
+         set "clock_gauge": true. -->
+    <bool name="clock_gauge">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

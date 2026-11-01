@@ -115,7 +115,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * 2025-01-01. TVs without a clock battery boot at the epoch (08:00 in China) and keep it until network
      * time arrives; the clock, date and greeting stay hidden before then.
      */
-    private static final long TIME_VALID_AFTER_MS = 1_735_689_600_000L;
+    static final long TIME_VALID_AFTER_MS = 1_735_689_600_000L;
     private String liveTvPkg;
     /** Launcher settings' change count this Home was built with (see onResume). */
     private long settingsRevision;

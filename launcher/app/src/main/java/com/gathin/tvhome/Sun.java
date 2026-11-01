@@ -47,4 +47,16 @@ final class Sun {
         if (minute < today[1]) return new int[]{1, today[1]};
         return tomorrow == null ? null : new int[]{0, tomorrow[0]};
     }
+
+    /**
+     * The day or night this minute of today is in, as {@code {1 for day or 0 for night, start, end}} in minutes from
+     * today's midnight: a night that began yesterday starts below 0, one that ends tomorrow ends past 1440. Null when
+     * one of the days has no sunrise or sunset.
+     */
+    static int[] period(int minute, int[] yesterday, int[] today, int[] tomorrow) {
+        if (today == null) return null;
+        if (minute < today[0]) return yesterday == null ? null : new int[]{0, yesterday[1] - 1440, today[0]};
+        if (minute < today[1]) return new int[]{1, today[0], today[1]};
+        return tomorrow == null ? null : new int[]{0, today[1], tomorrow[0] + 1440};
+    }
 }

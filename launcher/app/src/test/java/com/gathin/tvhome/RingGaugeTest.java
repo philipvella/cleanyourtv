@@ -5,14 +5,14 @@ import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
-public class TempGaugeTest {
+public class RingGaugeTest {
     @Test
     public void theDotSitsBetweenTheLowAndTheHigh() {
-        assertEquals(0f, TempGauge.position(6, 6, 10), 0.001f);
-        assertEquals(1f, TempGauge.position(10, 6, 10), 0.001f);
-        assertEquals(0.5f, TempGauge.position(8, 6, 10), 0.001f);
-        assertEquals(0.5f, TempGauge.position(7, 7, 7), 0.001f);
-        assertEquals(1f, TempGauge.position(12, 6, 10), 0.001f);
+        assertEquals(0f, RingGauge.position(6, 6, 10), 0.001f);
+        assertEquals(1f, RingGauge.position(10, 6, 10), 0.001f);
+        assertEquals(0.5f, RingGauge.position(8, 6, 10), 0.001f);
+        assertEquals(0.5f, RingGauge.position(7, 7, 7), 0.001f);
+        assertEquals(1f, RingGauge.position(12, 6, 10), 0.001f);
     }
 
     @Test

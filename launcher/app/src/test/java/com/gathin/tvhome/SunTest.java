@@ -69,4 +69,15 @@ public class SunTest {
         org.junit.Assert.assertArrayEquals(new int[]{0, 416}, Sun.next(23 * 60 + 59, today, tomorrow));
         org.junit.Assert.assertNull(Sun.next(600, null, tomorrow));
     }
+
+    @Test
+    public void periodIsTheDayOrTheNightNowIsIn() {
+        int[] yesterday = {412, 1028}, today = {414, 1026}, tomorrow = {416, 1024};
+        org.junit.Assert.assertArrayEquals(new int[]{0, 1028 - 1440, 414}, Sun.period(0, yesterday, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{1, 414, 1026}, Sun.period(414, yesterday, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{1, 414, 1026}, Sun.period(13 * 60, yesterday, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{0, 1026, 416 + 1440}, Sun.period(1026, yesterday, today, tomorrow));
+        org.junit.Assert.assertNull(Sun.period(0, null, today, tomorrow));
+        org.junit.Assert.assertNull(Sun.period(600, yesterday, null, tomorrow));
+    }
 }

@@ -532,6 +532,10 @@
          marked. No calendar permission: nothing is read but the clock. Off by default; a theme can set
          "clock_calendar": true. -->
     <bool name="clock_calendar">false</bool>
+    <!-- clock_calendar: the bank holidays the calendar marks, worked out offline. "auto" picks the UK region from
+         latitude and longitude while the TV is on UK time (England and Wales, Scotland or Northern Ireland); or name
+         one: "england-wales", "scotland", "northern-ireland"; "off" shows none. -->
+    <string name="public_holidays" translatable="false">auto</string>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

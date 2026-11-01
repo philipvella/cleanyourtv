@@ -32,6 +32,11 @@ import java.util.Map;
  */
 public final class CalendarActivity extends Activity {
     static final String EXTRA_DATES = "com.gathin.tvhome.extra.DATES";
+    /** public_holidays: the region Holidays.region chose, or "" for none. */
+    static final String EXTRA_REGION = "com.gathin.tvhome.extra.REGION";
+    private String region = "";
+    private String[] sceneNames;
+    private final java.util.Map<Integer, java.util.Map<LocalDate, String>> bankByYear = new java.util.HashMap<>();
 
     private final Locale here = Locale.getDefault();
     private final DayOfWeek firstDay = WeekFields.of(Locale.getDefault()).getFirstDayOfWeek();
@@ -48,6 +53,9 @@ public final class CalendarActivity extends Activity {
         density = getResources().getDisplayMetrics().density;
         String[] dates = getIntent().getStringArrayExtra(EXTRA_DATES);
         own = Season.parseDates(dates == null ? new ArrayList<>() : Arrays.asList(dates));
+        String r = getIntent().getStringExtra(EXTRA_REGION);
+        region = r == null ? "" : r;
+        sceneNames = getResources().getStringArray(R.array.calendar_day_names);
         try {
             light = getResources().getFont(R.font.montserrat_light);
         } catch (RuntimeException e) {
@@ -124,7 +132,12 @@ public final class CalendarActivity extends Activity {
             names.addView(n, new LinearLayout.LayoutParams(dp(CELL_W), dp(28)));
         }
         grid.addView(names);
-        Map<Integer, Season.Scene> marked = CalendarMonth.marks(shown, own);
+        java.util.Map<LocalDate, String> bank = bankByYear.get(shown.getYear());
+        if (bank == null) {
+            bank = Holidays.of(region, shown.getYear());
+            bankByYear.put(shown.getYear(), bank);
+        }
+        Map<Integer, java.util.List<CalendarMonth.Mark>> marked = CalendarMonth.marks(shown, own, sceneNames, bank);
         LocalDate now = LocalDate.now();
         int first = CalendarMonth.firstColumn(shown, firstDay), length = shown.lengthOfMonth();
         int rows = CalendarMonth.rows(shown, firstDay);
@@ -132,35 +145,61 @@ public final class CalendarActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             for (int c = 0; c < 7; c++) {
                 int day = r * 7 + c - first + 1;
+                java.util.List<CalendarMonth.Mark> on = marked.get(day);
+                boolean off = false, other = false;
+                if (on != null) for (CalendarMonth.Mark m : on) {
+                    if (m.bank) off = true;
+                    else other = true;
+                }
                 row.addView(day >= 1 && day <= length
-                                ? cell(day, shown.atDay(day).equals(now), marked.containsKey(day))
+                                ? cell(day, shown.atDay(day).equals(now), off, other)
                                 : new View(this),
                         new LinearLayout.LayoutParams(dp(CELL_W), dp(CELL_H)));
             }
             grid.addView(row);
         }
         marks.removeAllViews();
-        String[] labels = getResources().getStringArray(R.array.calendar_day_names);
         if (marked.isEmpty()) {
             TextView none = text(16, 0x80FFFFFF, regular, 0f);
             none.setText(R.string.calendar_nothing);
             marks.addView(none, line());
         }
-        for (Map.Entry<Integer, Season.Scene> m : marked.entrySet()) {
-            LinearLayout one = new LinearLayout(this);
-            TextView d = text(16, 0xFFFFFFFF, regular, 0f);
-            d.setText(String.valueOf(m.getKey()));
-            one.addView(d, new LinearLayout.LayoutParams(dp(36), ViewGroup.LayoutParams.WRAP_CONTENT));
-            TextView what = text(16, 0xCCFFFFFF, regular, 0f);
-            int i = m.getValue().ordinal();
-            what.setText(i < labels.length ? labels[i] : "");
-            one.addView(what);
-            marks.addView(one, line());
+        for (Map.Entry<Integer, java.util.List<CalendarMonth.Mark>> m : marked.entrySet()) {
+            boolean firstOfDay = true;
+            for (CalendarMonth.Mark mark : m.getValue()) {
+                // The day, then the name with "BANK HOLIDAY" under it, so a long name keeps the full width.
+                LinearLayout one = new LinearLayout(this);
+                TextView d = text(16, 0xFFFFFFFF, regular, 0f);
+                d.setText(firstOfDay ? String.valueOf(m.getKey()) : "");
+                one.addView(d, new LinearLayout.LayoutParams(dp(36), ViewGroup.LayoutParams.WRAP_CONTENT));
+                LinearLayout words = new LinearLayout(this);
+                words.setOrientation(LinearLayout.VERTICAL);
+                TextView what = text(16, 0xCCFFFFFF, regular, 0f);
+                what.setSingleLine(false);
+                what.setMaxLines(2);
+                what.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                what.setText(mark.name);
+                words.addView(what);
+                if (mark.bank) {
+                    TextView tag = caps(getString(R.string.calendar_bank_holiday), 0x80FFFFFF);
+                    tag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+                    LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT);
+                    tlp.topMargin = dp(5);
+                    words.addView(tag, tlp);
+                }
+                one.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                marks.addView(one, line());
+                firstOfDay = false;
+            }
         }
     }
 
-    /** One day: its number, ringed in white when it is today, with a small dot under it when it is marked. */
-    private View cell(int day, boolean today, boolean marked) {
+    /**
+     * One day: its number on a white disc when it is today, in a thin white ring on a bank holiday, and with a small
+     * dot under it for any other date worth a mark.
+     */
+    private View cell(int day, boolean today, boolean bankHoliday, boolean marked) {
         FrameLayout cell = new FrameLayout(this);
         TextView n = text(19, today ? 0xFF0B0C0E : 0xE6FFFFFF, regular, 0f);
         n.setText(String.valueOf(day));
@@ -170,6 +209,11 @@ public final class CalendarActivity extends Activity {
             disc.setShape(GradientDrawable.OVAL);
             disc.setColor(0xFFFFFFFF);
             n.setBackground(disc);
+        } else if (bankHoliday) {
+            GradientDrawable ring = new GradientDrawable();
+            ring.setShape(GradientDrawable.OVAL);
+            ring.setStroke(Math.max(1, dp(1.5f)), 0xB3FFFFFF);
+            n.setBackground(ring);
         }
         cell.addView(n, new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER));
         if (marked) {

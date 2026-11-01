@@ -36,12 +36,20 @@ public class CalendarMonthTest {
         assertNull(CalendarMonth.holiday(Season.easter(2027).plusDays(1)));
     }
 
+    private static final String[] NAMES = {"", "", "Halloween", "Bonfire Night", "Christmas Day", "", "", "", "",
+            "New Year's Day", "", "", "Easter Sunday", "Mother's Day", "Father's Day", "Birthday", "Anniversary"};
+
     @Test
-    public void theHouseholdsDatesComeFirst() {
+    public void theHouseholdsDatesComeFirstAndANameIsGivenOnce() {
         Map<MonthDay, Season.Scene> own = Season.parseDates(Arrays.asList("04-21=birthday", "11-05=anniversary"));
-        Map<Integer, Season.Scene> nov = CalendarMonth.marks(YearMonth.of(2026, 11), own);
-        assertEquals(Season.Scene.ANNIVERSARY, nov.get(5));
-        assertEquals(1, nov.size());
-        assertEquals(Season.Scene.BIRTHDAY, CalendarMonth.marks(YearMonth.of(2026, 4), own).get(21));
+        Map<Integer, java.util.List<CalendarMonth.Mark>> nov = CalendarMonth.marks(YearMonth.of(2026, 11), own, NAMES,
+                java.util.Collections.emptyMap());
+        assertEquals("Anniversary", nov.get(5).get(0).name);
+        assertEquals("Bonfire Night", nov.get(5).get(1).name);
+        Map<Integer, java.util.List<CalendarMonth.Mark>> dec = CalendarMonth.marks(YearMonth.of(2026, 12), own, NAMES,
+                Holidays.of(Holidays.ENGLAND, 2026));
+        assertEquals(1, dec.get(25).size());                 // the bank holiday and Season's Christmas are one name
+        assertEquals(true, dec.get(25).get(0).bank);
+        assertEquals("Boxing Day (substitute day)", dec.get(28).get(0).name);
     }
 }

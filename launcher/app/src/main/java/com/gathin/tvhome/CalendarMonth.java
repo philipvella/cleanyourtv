@@ -4,6 +4,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.MonthDay;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -26,16 +28,47 @@ final class CalendarMonth {
         return (firstColumn(month, firstDay) + month.lengthOfMonth() + 6) / 7;
     }
 
-    /** The days of the month with a mark, in order: the household's dates first, else the day's holiday. */
-    static Map<Integer, Season.Scene> marks(YearMonth month, Map<MonthDay, Season.Scene> own) {
-        Map<Integer, Season.Scene> out = new TreeMap<>();
+    /** One thing on a day: its name, and whether it is a bank holiday (a day off). */
+    static final class Mark {
+        final String name;
+        final boolean bank;
+
+        Mark(String name, boolean bank) {
+            this.name = name;
+            this.bank = bank;
+        }
+    }
+
+    /**
+     * The days of the month with something on, in order: the household's own date, the bank holiday, then the day's
+     * other holiday (Halloween, Mother's Day), a name already given once left out. {@code sceneNames} are the names
+     * of Season's scenes in their order; {@code bank} is Holidays.of for the month's year.
+     */
+    static Map<Integer, List<Mark>> marks(YearMonth month, Map<MonthDay, Season.Scene> own, String[] sceneNames,
+                                          Map<LocalDate, String> bank) {
+        Map<Integer, List<Mark>> out = new TreeMap<>();
         for (int d = 1; d <= month.lengthOfMonth(); d++) {
             LocalDate day = month.atDay(d);
+            List<Mark> on = new ArrayList<>();
             Season.Scene mine = own.get(MonthDay.from(day));
-            Season.Scene s = mine != null ? mine : holiday(day);
-            if (s != null) out.put(d, s);
+            if (mine != null) add(on, name(mine, sceneNames), false);
+            String off = bank.get(day);
+            if (off != null) add(on, off, true);
+            Season.Scene h = holiday(day);
+            if (h != null && h != mine) add(on, name(h, sceneNames), false);
+            if (!on.isEmpty()) out.put(d, on);
         }
         return out;
+    }
+
+    private static String name(Season.Scene s, String[] names) {
+        return s.ordinal() < names.length ? names[s.ordinal()] : "";
+    }
+
+    private static void add(List<Mark> on, String name, boolean bank) {
+        if (name.isEmpty()) return;
+        for (Mark m : on) if (m.name.equalsIgnoreCase(name)) return;
+        on.add(new Mark(name, bank));
     }
 
     /** The holiday on this very day, or null: Season's scenes that last several days are marked on their main day. */

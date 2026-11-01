@@ -107,6 +107,8 @@ final class Welcome {
     /** clock_calendar: the clock block that takes focus, and the household's dates for the calendar. */
     private View clockTarget;
     private String[] calendarDates = new String[0];
+    /** public_holidays: the bank holidays' region for the calendar (Holidays.region), "" for none. */
+    private String calendarRegion = "";
     /** next_sun_time: the line under the date, the place, and the minute tick that keeps it right; null when off. */
     private TextView sunLine;
     private double sunLat, sunLon;
@@ -174,7 +176,10 @@ final class Welcome {
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
         if (w.weatherBlock != null) w.forecast = w.forecastIntent(cfg.weatherSource.trim());
         if (w.forecast != null) w.makeWeatherOpen();
-        if (cfg.clockCalendar && cfg.headerBottom) w.makeClockOpen(cfg.seasonalDates);
+        if (cfg.clockCalendar && cfg.headerBottom) {
+            w.makeClockOpen(cfg.seasonalDates, Holidays.region(cfg.publicHolidays,
+                    java.time.ZoneId.systemDefault().getId(), cfg.latitude, cfg.longitude));
+        }
         return w;
     }
 
@@ -867,10 +872,11 @@ final class Welcome {
     }
 
     /** clock_calendar: the bottom clock (with its ring, if any) opens a calendar. */
-    private void makeClockOpen(java.util.List<String> dates) {
+    private void makeClockOpen(java.util.List<String> dates, String region) {
         clockTarget = clockGaugeRow != null ? clockGaugeRow : activity.findViewById(R.id.leftBlock);
         if (clockTarget == null) return;
         calendarDates = dates.toArray(new String[0]);
+        calendarRegion = region;
         makeOpenable(clockTarget, clockFrame != null ? clockFrame : clockTarget, this::openCalendar);
     }
 
@@ -885,13 +891,15 @@ final class Welcome {
                     android.net.Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis()));
         }
         if (!handled(app)) {
-            app = new Intent(activity, CalendarActivity.class).putExtra(CalendarActivity.EXTRA_DATES, calendarDates);
+            app = new Intent(activity, CalendarActivity.class).putExtra(CalendarActivity.EXTRA_DATES, calendarDates)
+                    .putExtra(CalendarActivity.EXTRA_REGION, calendarRegion);
         }
         try {
             activity.startActivity(app);
         } catch (ActivityNotFoundException | SecurityException gone) {
             activity.startActivity(new Intent(activity, CalendarActivity.class)
-                    .putExtra(CalendarActivity.EXTRA_DATES, calendarDates));
+                    .putExtra(CalendarActivity.EXTRA_DATES, calendarDates)
+                    .putExtra(CalendarActivity.EXTRA_REGION, calendarRegion));
         }
     }
 

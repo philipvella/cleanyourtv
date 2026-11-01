@@ -185,6 +185,7 @@
     <string name="calendar_today" translatable="false">Today</string>
     <string name="calendar_this_month" translatable="false">This month</string>
     <string name="calendar_nothing" translatable="false">Nothing marked this month</string>
+    <string name="calendar_bank_holiday" translatable="false">Bank holiday</string>
     <!-- CalendarActivity: the name for each Season.Scene, in the enum's order; empty for the seasons. -->
     <string-array name="calendar_day_names" translatable="false">
         <item></item>

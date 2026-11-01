@@ -184,6 +184,8 @@ final class Config {
     final int dockLift;
     /** clock_calendar: OK on the bottom clock opens a calendar app, or CalendarActivity without one. */
     final boolean clockCalendar;
+    /** public_holidays: the bank holidays the calendar shows: auto (from the place), a UK region, or off. */
+    final String publicHolidays;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -331,7 +333,8 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar) {
+                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar, String publicHolidays) {
+        this.publicHolidays = publicHolidays;
         this.clockCalendar = clockCalendar;
         this.dockLift = dockLift;
         this.heroLineHeight = heroLineHeight;
@@ -562,6 +565,7 @@ final class Config {
         int heroLineHeight = res.getInteger(R.integer.hero_line_height);
         int dockLift = res.getInteger(R.integer.dock_lift);
         boolean clockCalendar = res.getBoolean(R.bool.clock_calendar);
+        String publicHolidays = res.getString(R.string.public_holidays);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -699,6 +703,7 @@ final class Config {
             heroLineHeight = integer(json, "hero_line_height", heroLineHeight, 70, 130);
             dockLift = integer(json, "dock_lift", dockLift, 0, 120);
             clockCalendar = bool(json, "clock_calendar", clockCalendar);
+            publicHolidays = string(json, "public_holidays", publicHolidays);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -816,7 +821,7 @@ final class Config {
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
                 pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
                 latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono, monoTiles, glassTiles, Math.max(0, Math.min(120, contentLift)),
-                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar);
+                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar, publicHolidays);
     }
 
     /**

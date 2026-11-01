@@ -2367,6 +2367,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- navigation ------------------------------------------------------------------------------
 
+    /** Where a tile's centre sits across the screen, 0 at the left edge to 1 at the right; 0 when it isn't laid out. */
+    private float across(int position) {
+        View tile = grid.getLayoutManager() == null ? null : grid.getLayoutManager().findViewByPosition(position);
+        int width = getResources().getDisplayMetrics().widthPixels;
+        if (tile == null || width <= 0) return 0f;
+        int[] at = new int[2];
+        tile.getLocationOnScreen(at);
+        return (at[0] + tile.getWidth() / 2f) / width;
+    }
+
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
         int count = adapter.appCount();
@@ -2375,9 +2385,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // One row: Up leaves for the top bar, Down has nowhere to go, and Left/Right walk the whole row,
             // stopping at its two ends (the default focus search scrolls the row to the next tile).
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return false;
-            // Down: the weather, when it opens a forecast (weather_source); else nowhere.
+            // Down: the weather (forecast) or the clock (clock_calendar), the one on this tile's side; else nowhere.
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (welcome != null && welcome.focusWeather(() -> focusTile(lastFocused))) {
+                if (welcome != null && welcome.focusBottom(across(position), () -> focusTile(lastFocused))) {
                     grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
                 }
                 return true;
@@ -2410,7 +2420,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
             if (position >= lastRowStart) {
                 if (adapter.isLibraryAt(count)) focusLibrary();
-                else if (welcome != null && welcome.focusWeather(() -> focusTile(lastFocused))) {
+                else if (welcome != null && welcome.focusBottom(across(position), () -> focusTile(lastFocused))) {
                     grid.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
                 }
                 return true;

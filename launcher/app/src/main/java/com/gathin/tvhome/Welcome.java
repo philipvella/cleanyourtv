@@ -102,8 +102,11 @@ final class Welcome {
     /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
     static final String FORECAST = "com.gathin.tvhome.action.WEATHER_FORECAST";
     private Intent forecast;
-    /** Up from the focused weather: back to the app row (MainActivity). */
-    private Runnable weatherUp;
+    /** Up from the focused weather or clock: back to the app row (MainActivity). */
+    private Runnable bottomUp;
+    /** clock_calendar: the clock block that takes focus, and the household's dates for the calendar. */
+    private View clockTarget;
+    private String[] calendarDates = new String[0];
     /** next_sun_time: the line under the date, the place, and the minute tick that keeps it right; null when off. */
     private TextView sunLine;
     private double sunLat, sunLon;
@@ -171,6 +174,7 @@ final class Welcome {
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
         if (w.weatherBlock != null) w.forecast = w.forecastIntent(cfg.weatherSource.trim());
         if (w.forecast != null) w.makeWeatherOpen();
+        if (cfg.clockCalendar && cfg.headerBottom) w.makeClockOpen(cfg.seasonalDates);
         return w;
     }
 
@@ -853,33 +857,88 @@ final class Welcome {
 
     /** The weather takes focus (Down from the app row), shows a soft frame while focused, and OK opens the forecast. */
     private void makeWeatherOpen() {
-        weatherBlock.setFocusable(true);
-        weatherBlock.setClickable(true);
-        weatherBlock.setOnClickListener(v -> {
+        makeOpenable(weatherBlock, weatherFrame != null ? weatherFrame : weatherBlock, () -> {
             try {
                 activity.startActivity(forecast);
             } catch (ActivityNotFoundException | SecurityException gone) {
                 // The add-on was removed or changed since Home started: nothing to open.
             }
         });
-        weatherBlock.setOnKeyListener((v, keyCode, event) -> {
+    }
+
+    /** clock_calendar: the bottom clock (with its ring, if any) opens a calendar. */
+    private void makeClockOpen(java.util.List<String> dates) {
+        clockTarget = clockGaugeRow != null ? clockGaugeRow : activity.findViewById(R.id.leftBlock);
+        if (clockTarget == null) return;
+        calendarDates = dates.toArray(new String[0]);
+        makeOpenable(clockTarget, clockFrame != null ? clockFrame : clockTarget, this::openCalendar);
+    }
+
+    /**
+     * The TV's calendar app when it has one (its launcher entry, or the standard "show this time" link); otherwise
+     * the launcher's own month calendar. Looked up on each press, so an app installed later is used.
+     */
+    private void openCalendar() {
+        Intent app = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CALENDAR);
+        if (!handled(app)) {
+            app = new Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis()));
+        }
+        if (!handled(app)) {
+            app = new Intent(activity, CalendarActivity.class).putExtra(CalendarActivity.EXTRA_DATES, calendarDates);
+        }
+        try {
+            activity.startActivity(app);
+        } catch (ActivityNotFoundException | SecurityException gone) {
+            activity.startActivity(new Intent(activity, CalendarActivity.class)
+                    .putExtra(CalendarActivity.EXTRA_DATES, calendarDates));
+        }
+    }
+
+    /**
+     * Whether a real app handles the intent. Android TV's framework stubs claim the calendar link only to say "No
+     * application can handle this action" (com.google.android.tv.frameworkpackagestubs, CalendarStub), so they don't count.
+     */
+    private boolean handled(Intent intent) {
+        for (android.content.pm.ResolveInfo r : activity.getPackageManager()
+                .queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)) {
+            if (r.activityInfo != null && !r.activityInfo.packageName.endsWith(".frameworkpackagestubs")) return true;
+        }
+        return false;
+    }
+
+    /**
+     * A block in the bottom strip that OK opens: focusable, with the weather's focus ring on its frame. Up goes back to
+     * the app row, Left and Right move between the weather and the clock, and Down stays put.
+     */
+    private void makeOpenable(View block, View frame, Runnable open) {
+        block.setFocusable(true);
+        block.setClickable(true);
+        block.setOnClickListener(v -> open.run());
+        block.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                if (weatherUp != null) weatherUp.run();
-                return true;
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    if (bottomUp != null) bottomUp.run();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    if (v == clockTarget && openable(weatherBlock, forecast != null)) weatherBlock.requestFocus();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    if (v == weatherBlock && openable(clockTarget, true)) clockTarget.requestFocus();
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    return true;
+                default:
+                    return false;
             }
-            // Nothing else down here takes focus: the other arrows stay on the weather.
-            return keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_DPAD_LEFT
-                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
         });
         GradientDrawable ring = new GradientDrawable();
         ring.setColor(0x26FFFFFF);
         ring.setStroke(Math.round(1.5f * density), 0x80FFFFFF);
         ring.setCornerRadius(14 * density);
-        int in = Math.round(4 * density);
-        View frame = weatherFrame != null ? weatherFrame : weatherBlock;
-        InsetDrawable focusRing = new InsetDrawable(ring, in);
-        weatherBlock.setOnFocusChangeListener((v, focused) -> {
+        InsetDrawable focusRing = new InsetDrawable(ring, Math.round(4 * density));
+        block.setOnFocusChangeListener((v, focused) -> {
             // An inset background replaces the frame's padding with its own; keep the frame's, so nothing moves.
             int l = frame.getPaddingLeft(), t = frame.getPaddingTop(), r = frame.getPaddingRight(), b = frame.getPaddingBottom();
             frame.setBackground(focused ? focusRing : null);
@@ -887,11 +946,20 @@ final class Welcome {
         });
     }
 
-    /** Down from the app row: focuses the weather when it can open the forecast and is on screen. */
-    boolean focusWeather(Runnable up) {
-        if (forecast == null || weatherBlock == null || weatherBlock.getVisibility() != View.VISIBLE) return false;
-        weatherUp = up;
-        return weatherBlock.requestFocus();
+    private static boolean openable(View v, boolean opens) {
+        return v != null && opens && v.isShown();
+    }
+
+    /**
+     * Down from the app row: the weather or the clock, whichever can open something and is on screen; when both can,
+     * the one on the side of the screen the tile is on ({@code across}: the tile's centre, 0 at the left to 1).
+     */
+    boolean focusBottom(float across, Runnable up) {
+        boolean weatherOk = openable(weatherBlock, forecast != null), clockOk = openable(clockTarget, true);
+        View target = clockOk && (!weatherOk || across > 0.5f) ? clockTarget : weatherOk ? weatherBlock : null;
+        if (target == null) return false;
+        bottomUp = up;
+        return target.requestFocus();
     }
 
     // ---- lifecycle ----------------------------------------------------------------------------------

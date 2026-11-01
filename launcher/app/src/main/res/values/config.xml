@@ -527,6 +527,11 @@
     <!-- With hero_text or the bottom strip: the dock alone raised by this many dp (0 to 120), on top of content_lift,
          to even its gaps to the hero above and the strip below. 0 by default. -->
     <integer name="dock_lift">0</integer>
+    <!-- With header_bottom: Down from the app row reaches the clock (the half of the row nearer it), and OK opens the
+         TV's calendar app, or without one the launcher's own month calendar with seasonal_dates and the holidays
+         marked. No calendar permission: nothing is read but the clock. Off by default; a theme can set
+         "clock_calendar": true. -->
+    <bool name="clock_calendar">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

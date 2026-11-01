@@ -181,4 +181,28 @@
     <string name="game_live">Live now</string>
     <string name="next_sunrise" translatable="false">Sunrise %1$s</string>
     <string name="next_sunset" translatable="false">Sunset %1$s</string>
+    <string name="calendar_hint" translatable="false">‹ › month  ·  OK today</string>
+    <string name="calendar_today" translatable="false">Today</string>
+    <string name="calendar_this_month" translatable="false">This month</string>
+    <string name="calendar_nothing" translatable="false">Nothing marked this month</string>
+    <!-- CalendarActivity: the name for each Season.Scene, in the enum's order; empty for the seasons. -->
+    <string-array name="calendar_day_names" translatable="false">
+        <item></item>
+        <item></item>
+        <item>Halloween</item>
+        <item>Bonfire Night</item>
+        <item>Christmas Day</item>
+        <item></item>
+        <item>Valentine\'s Day</item>
+        <item></item>
+        <item></item>
+        <item>New Year\'s Day</item>
+        <item>Pancake Day</item>
+        <item>St Patrick\'s Day</item>
+        <item>Easter Sunday</item>
+        <item>Mother\'s Day</item>
+        <item>Father\'s Day</item>
+        <item>Birthday</item>
+        <item>Anniversary</item>
+    </string-array>
 </resources>

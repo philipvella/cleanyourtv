@@ -25,6 +25,15 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- clock_calendar: a calendar app, opened with OK on the clock when one is installed (Welcome). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:host="com.android.calendar" />
+        </intent>
         <!-- weather_source: the add-on's forecast screen, opened with OK on the weather (Welcome). -->
         <intent>
             <action android:name="com.gathin.tvhome.action.WEATHER_FORECAST" />
@@ -107,6 +116,13 @@
             </intent-filter>
         </activity>
 
+        <!-- clock_calendar's own month calendar, for a TV without a calendar app. -->
+        <activity
+            android:name=".CalendarActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
         <activity
             android:name=".LauncherSettingsActivity"
             android:exported="false"

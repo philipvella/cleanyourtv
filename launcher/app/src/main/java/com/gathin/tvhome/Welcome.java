@@ -140,7 +140,7 @@ final class Welcome {
             // The clock stacked over the date (date_below_clock) is taller than the clock and date side by side.
             float strip = cfg.headerBottom && cfg.dateBelowClock ? BOTTOM_STRIP_STACKED_DP : BOTTOM_STRIP_DP;
             // content_lift raises the dock with the rest; the hero follows in addHero.
-            lp.bottomMargin = Math.round((strip + cfg.contentLift) * w.density);
+            lp.bottomMargin = Math.round((strip + cfg.contentLift + cfg.dockLift) * w.density);
             wrapper.setLayoutParams(lp);
         }
         w.lift = Math.round(cfg.contentLift * w.density);

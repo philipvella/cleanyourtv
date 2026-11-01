@@ -161,6 +161,11 @@ final class Config {
     final String seasonalScenes;
     /** seasonal_dates: the household's own days, "MM-DD=scene" ("04-21=birthday"); Season.parseDates. */
     final List<String> seasonalDates;
+    /**
+     * The place whose sun sets wallpaper_moods and the sky's times (config.xml latitude and longitude, or a theme's
+     * "latitude" and "longitude", as text); empty without one, and the fixed times are used.
+     */
+    final String latitude, longitude;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -308,8 +313,10 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates) {
+                   List<String> seasonalDates, String latitude, String longitude) {
         this.seasonalDates = Collections.unmodifiableList(seasonalDates);
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.seasonalScenes = seasonalScenes;
         this.heroFont = heroFont;
         this.captionPosition = captionPosition;
@@ -517,6 +524,7 @@ final class Config {
         String heroFont = res.getString(R.string.hero_font).trim();
         String seasonalScenes = res.getString(R.string.seasonal_scenes).trim();
         List<String> seasonalDates = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.seasonal_dates)));
+        String latitude = res.getString(R.string.latitude).trim(), longitude = res.getString(R.string.longitude).trim();
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -637,6 +645,13 @@ final class Config {
             heroFont = string(json, "hero_font", heroFont);
             seasonalScenes = string(json, "seasonal_scenes", seasonalScenes);
             seasonalDates = stringList(json, "seasonal_dates", seasonalDates);
+            // Numbers or text ("51.755"); the pair only together, so a theme can't mix its place with the build's.
+            String lat = json.has("latitude") ? json.opt("latitude").toString().trim() : "";
+            String lon = json.has("longitude") ? json.opt("longitude").toString().trim() : "";
+            if (!lat.isEmpty() && !lon.isEmpty()) {
+                latitude = lat;
+                longitude = lon;
+            }
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -752,7 +767,8 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
-                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates);
+                pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
+                latitude, longitude);
     }
 
     /**

@@ -141,8 +141,8 @@ final class ClockScene {
             rotationMs = cfg.wallpaperRotationMinutes * 60_000L;
             order = cfg.wallpaperOrder;
             moods = cfg.wallpaperMoods;
-            latitude = moods.isEmpty() ? "" : ctx.getString(R.string.latitude);
-            longitude = moods.isEmpty() ? "" : ctx.getString(R.string.longitude);
+            latitude = moods.isEmpty() ? "" : cfg.latitude;
+            longitude = moods.isEmpty() ? "" : cfg.longitude;
         }
         wallpaperShade = (cfg.clockWallpaperDim * 255 / 100) << 24;
         wallpaperRes = ctx.getResources();

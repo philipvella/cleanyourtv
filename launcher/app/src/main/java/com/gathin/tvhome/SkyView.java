@@ -44,9 +44,17 @@ public class SkyView extends View {
     private int lastMinute = -1;
     private Bitmap texture;
     private BitmapDrawable drawable;
+    /** The place for the sun's times (Config latitude and longitude); empty for the fixed reference day. */
+    private String latitude = "", longitude = "";
 
     public SkyView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    /** The place whose sun the glow follows (config.xml or the theme); call before {@link #setIntensity}. */
+    public void setPlace(String lat, String lon) {
+        latitude = lat == null ? "" : lat.trim();
+        longitude = lon == null ? "" : lon.trim();
     }
 
     /** {@code percent} of sky_intensity: 0 hides the backdrop, 100 covers the wallpaper. */
@@ -72,8 +80,7 @@ public class SkyView extends View {
     /** Today's sunrise and sunset at the configured place, or null without one (fixed reference day). */
     @Nullable
     private int[] sunTimes() {
-        String lat = getContext().getString(R.string.latitude);
-        String lon = getContext().getString(R.string.longitude);
+        String lat = latitude, lon = longitude;
         if (lat.isEmpty() || lon.isEmpty()) return null;
         try {
             return Sun.riseAndSet(LocalDate.now(), Double.parseDouble(lat), Double.parseDouble(lon),

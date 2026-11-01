@@ -514,6 +514,9 @@
     <!-- App tiles in greyscale, fading to their own colours only while focused, so the screen stays calm and the
          focused app stands out. Off by default; a theme can set "mono_tiles": true. -->
     <bool name="mono_tiles">false</bool>
+    <!-- App tiles as panes of glass: a rim that catches the light, a soft sheen and a little of the wallpaper showing
+         through, solid only while focused. Drawn, not blurred. Off by default; a theme can set "glass_tiles": true. -->
+    <bool name="glass_tiles">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

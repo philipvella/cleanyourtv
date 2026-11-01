@@ -220,6 +220,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean uniformTiles;
     /** mono_tiles (Config). */
     private final boolean monoTiles;
+    /** glass_tiles (Config). */
+    private final boolean glassTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
     private final List<Entry> items = new ArrayList<>();
@@ -251,6 +253,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.appBanners = cfg.appBanners;
         this.uniformTiles = cfg.uniformTiles;
         this.monoTiles = cfg.monoTiles;
+        this.glassTiles = cfg.glassTiles;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -455,7 +458,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
         }
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot, monoTiles);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot, monoTiles, glassTiles);
     }
 
     @Override
@@ -492,7 +495,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
         // A fully opaque banner covers the whole card (centerCrop), so the card's own fill under it is drawn for
         // nothing on every frame; keep it under banners with transparent parts and under icon tiles.
-        h.card.setBackground(e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? null : h.cardBackground);
+        h.card.setBackground(e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? null
+                : h.glass ? h.glassFill : h.cardBackground);
         if (uniformTiles && e.banner == null) {
             if (e.backdrop == null) e.backdrop = backdrop(e.icon, ambientColorAt(position));
             h.card.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, e.backdrop));
@@ -510,7 +514,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setText(e.label);
             h.label.setVisibility(uniformTiles ? View.GONE : View.VISIBLE);
         }
-        if (h.mono) h.colour(focused, false);
+        if (h.mono || h.glass) h.colour(focused, false);
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
             if (tileMenu) {
@@ -903,6 +907,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         boolean inDock;
         /** mono_tiles: greyscale until focused; the colour's fade and how far it has come (0 grey, 1 full colour). */
         final boolean mono;
+        /** glass_tiles: the glass over the tile, the see-through fill behind icon tiles, and how much shows through at rest. */
+        final boolean glass;
+        final Drawable glassFill;
+        private static final float GLASS_REST_ALPHA = 0.8f;
         private android.animation.ValueAnimator fade;
         private float saturation = 1f;
         private final android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
@@ -925,20 +933,27 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private void saturate(float s) {
             saturation = s;
             android.graphics.ColorFilter f = null;
-            if (s < 0.999f) {
+            if (mono && s < 0.999f) {
                 matrix.setSaturation(s);
                 f = new android.graphics.ColorMatrixColorFilter(matrix);
             }
+            if (glass) {
+                float a = GLASS_REST_ALPHA + (1f - GLASS_REST_ALPHA) * s;
+                banner.setAlpha(a);
+                icon.setAlpha(a);
+            }
+            if (!mono) return;
             banner.setColorFilter(f);
             icon.setColorFilter(f);
             Drawable fill = card.getBackground();
-            if (fill != null) fill.mutate().setColorFilter(f);
+            if (fill != null && fill != glassFill) fill.mutate().setColorFilter(f);
         }
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion, float restNameAlpha, boolean overshoot, boolean mono) {
+               boolean reducedMotion, float restNameAlpha, boolean overshoot, boolean mono, boolean glass) {
             super(v);
             this.mono = mono;
+            this.glass = glass;
             card = v.findViewById(R.id.card);
             cardBackground = card.getBackground();
             banner = v.findViewById(R.id.banner);
@@ -960,6 +975,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 }
             });
             card.setClipToOutline(true);
+            glassFill = glass ? new android.graphics.drawable.ColorDrawable(0x52101014) : null;
+            if (glass) card.setForeground(new LiquidGlass(density));
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
@@ -970,7 +987,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
-                if (this.mono) colour(focused, animations && !reducedMotion);
+                if (this.mono || this.glass) colour(focused, animations && !reducedMotion);
                 view.animate().cancel();
                 banner.animate().cancel();
                 name.animate().cancel();

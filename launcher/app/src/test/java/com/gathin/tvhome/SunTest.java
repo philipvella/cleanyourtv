@@ -58,4 +58,15 @@ public class SunTest {
         assertEquals(Sky.at(600).bottom, Sky.at(600, 900, 800).bottom);
         assertEquals(Sky.at(600).bottom, Sky.at(600, 0, 1440).bottom);
     }
+
+    @Test
+    public void nextShowsSunriseBeforeDawnSunsetByDayAndTomorrowsSunriseAtNight() {
+        int[] today = {414, 1026}, tomorrow = {416, 1024};
+        org.junit.Assert.assertArrayEquals(new int[]{0, 414}, Sun.next(0, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{1, 1026}, Sun.next(414, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{1, 1026}, Sun.next(13 * 60, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{0, 416}, Sun.next(1026, today, tomorrow));
+        org.junit.Assert.assertArrayEquals(new int[]{0, 416}, Sun.next(23 * 60 + 59, today, tomorrow));
+        org.junit.Assert.assertNull(Sun.next(600, null, tomorrow));
+    }
 }

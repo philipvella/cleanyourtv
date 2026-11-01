@@ -496,6 +496,10 @@
          Vilnius: 54.69 and 25.28. -->
     <string name="latitude" translatable="false"></string>
     <string name="longitude" translatable="false"></string>
+    <!-- The next sunrise or sunset under the clock ("Sunset 16:32" in the afternoon, "Sunrise 06:54" after it),
+         worked out offline at latitude and longitude. Hidden without them. Off by default; a theme can set
+         "next_sun_time": true. -->
+    <bool name="next_sun_time">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

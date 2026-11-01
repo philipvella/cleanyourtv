@@ -35,4 +35,16 @@ final class Sun {
                 (int) Math.round(720 - 4 * (longitude + ha) - eqTime + offset),
                 (int) Math.round(720 - 4 * (longitude - ha) - eqTime + offset)};
     }
+
+    /**
+     * What happens next at this minute of the day: {@code {0, sunrise}} before today's sunrise, {@code {1, sunset}}
+     * between sunrise and sunset, and {@code {0, tomorrow's sunrise}} after sunset. Null when a day has no sunrise or
+     * sunset (polar night or midnight sun).
+     */
+    static int[] next(int minute, int[] today, int[] tomorrow) {
+        if (today == null) return null;
+        if (minute < today[0]) return new int[]{0, today[0]};
+        if (minute < today[1]) return new int[]{1, today[1]};
+        return tomorrow == null ? null : new int[]{0, tomorrow[0]};
+    }
 }

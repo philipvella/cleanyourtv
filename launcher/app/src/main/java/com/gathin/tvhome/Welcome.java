@@ -84,6 +84,11 @@ final class Welcome {
     private Intent forecast;
     /** Up from the focused weather: back to the app row (MainActivity). */
     private Runnable weatherUp;
+    /** next_sun_time: the line under the date, the place, and the minute tick that keeps it right; null when off. */
+    private TextView sunLine;
+    private double sunLat, sunLon;
+    private Handler main;
+    private final Runnable sunTick = this::sunTick;
 
     private Welcome(Activity activity) {
         this.activity = activity;
@@ -92,7 +97,8 @@ final class Welcome {
 
     static boolean wanted(Config cfg) {
         return !cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty() || cfg.headerBottom || cfg.pillLabelsOnly
-                || !cfg.weatherSource.isEmpty() || cfg.smallPills;
+                || !cfg.weatherSource.isEmpty() || cfg.smallPills
+                || (cfg.nextSunTime && !cfg.latitude.isEmpty());
     }
 
     /**
@@ -126,6 +132,7 @@ final class Welcome {
             w.labelsOnly(R.id.btnInputs, R.id.btnWifi, R.id.btnVpn, R.id.btnSettings);
         }
         if (cfg.smallPills) w.smallPills();
+        if (cfg.nextSunTime) w.addSunLine(cfg, main);
         if (!cfg.weatherSource.isEmpty()) {
             w.weather = WeatherLine.create(activity, cfg.weatherSource, main, w::showWeather);
             if (w.weather != null) w.addWeather(root, root.indexOfChild(content));
@@ -472,6 +479,57 @@ final class Welcome {
         t.setPaddingRelative(pad, 0, side - w - pad > 0 ? side - w - pad : 0, 0);
     }
 
+    // ---- the next sunrise or sunset under the date ---------------------------------------------------
+
+    /** next_sun_time: one line under the date, in the date's type, for the sun's next rise or set. */
+    private void addSunLine(Config cfg, Handler main) {
+        try {
+            sunLat = Double.parseDouble(cfg.latitude);
+            sunLon = Double.parseDouble(cfg.longitude);
+        } catch (NumberFormatException e) {
+            return;   // no usable place: nothing to show
+        }
+        TextView date = activity.findViewById(R.id.date);
+        if (date == null || !(date.getParent() instanceof LinearLayout)) return;
+        LinearLayout column = (LinearLayout) date.getParent();
+        sunLine = new TextView(activity);
+        sunLine.setTextSize(TypedValue.COMPLEX_UNIT_PX, date.getTextSize());
+        sunLine.setTypeface(date.getTypeface());
+        sunLine.setLetterSpacing(date.getLetterSpacing());
+        sunLine.setTextColor(date.getCurrentTextColor());
+        sunLine.setIncludeFontPadding(date.getIncludeFontPadding());
+        sunLine.setSingleLine(true);
+        sunLine.setGravity(date.getGravity());
+        softShadow(sunLine);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = ((LinearLayout.LayoutParams) date.getLayoutParams()).gravity;
+        lp.topMargin = Math.round(6 * density);
+        column.addView(sunLine, column.indexOfChild(date) + 1, lp);
+        this.main = main;
+    }
+
+    /** Shows what the sun does next (Sun.next), then runs again at the start of the next minute. */
+    private void sunTick() {
+        main.removeCallbacks(sunTick);
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(zone);
+        java.time.LocalDate today = now.toLocalDate();
+        int[] next = Sun.next(now.getHour() * 60 + now.getMinute(), Sun.riseAndSet(today, sunLat, sunLon, zone),
+                Sun.riseAndSet(today.plusDays(1), sunLat, sunLon, zone));
+        if (next == null) {
+            sunLine.setVisibility(View.GONE);
+        } else {
+            java.time.LocalTime at = java.time.LocalTime.of((next[1] / 60) % 24, next[1] % 60);
+            String time = android.text.format.DateFormat.getTimeFormat(activity).format(
+                    java.util.Date.from(at.atDate(today).atZone(zone).toInstant()));
+            sunLine.setText(activity.getString(next[0] == 0 ? R.string.next_sunrise : R.string.next_sunset, time)
+                    .toUpperCase(Locale.getDefault()));
+            sunLine.setVisibility(View.VISIBLE);
+        }
+        main.postDelayed(sunTick, 60_000L - (System.currentTimeMillis() % 60_000L) + 50);
+    }
+
     // ---- weather at the bottom left -----------------------------------------------------------------
 
     private void addWeather(FrameLayout root, int at) {
@@ -626,10 +684,12 @@ final class Welcome {
 
     void start() {
         if (weather != null) weather.start();
+        if (sunLine != null) sunTick();
     }
 
     void stop() {
         if (weather != null) weather.stop();
+        if (main != null) main.removeCallbacks(sunTick);
     }
 
     void homeAgain() {
@@ -638,5 +698,6 @@ final class Welcome {
 
     void shutdown() {
         if (weather != null) weather.shutdown();
+        if (main != null) main.removeCallbacks(sunTick);
     }
 }

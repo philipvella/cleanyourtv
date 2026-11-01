@@ -51,6 +51,8 @@ final class Welcome {
     static final float HERO_LIFTED_MIN_TOP_DP = 64;
     /** content_lift in px. */
     private int lift;
+    /** hero_line_height, percent. */
+    private int lineHeight = 95;
     /** The headline's centre, as a share of the screen's height (the middle of the upper third is 1/6). */
     static final float HERO_CENTRE = 0.21f;
     /** Gap between the caption's baseline area and the dock band's top edge, in dp. */
@@ -142,6 +144,7 @@ final class Welcome {
             wrapper.setLayoutParams(lp);
         }
         w.lift = Math.round(cfg.contentLift * w.density);
+        w.lineHeight = cfg.heroLineHeight;
         if (!cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty()) {
             w.heroFace = "montserrat".equalsIgnoreCase(cfg.heroFont) ? w.font(R.font.montserrat_light) : null;
             w.addHero(root, at, grid, cfg.heroText, cfg.heroCaption, cfg.captionPosition.trim().toLowerCase(Locale.ROOT));
@@ -196,7 +199,7 @@ final class Welcome {
             // Display type sits tight, as on Apple's screens; the theme's own capitals and line breaks are kept.
             headline.setLetterSpacing(-0.02f);
             headline.setMaxLines(3);
-            headline.setLineSpacing(0, 0.95f);
+            headline.setLineSpacing(0, lineHeight / 100f);
             headline.setIncludeFontPadding(false);
             headline.setGravity(Gravity.CENTER_HORIZONTAL);
             headline.setText(firstLineSmaller(text.replace("\\n", "\n")));

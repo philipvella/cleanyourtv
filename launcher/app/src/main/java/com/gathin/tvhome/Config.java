@@ -178,6 +178,8 @@ final class Config {
     final boolean glassTiles;
     /** content_lift: the dock and the hero above it raised by this many dp; the top bar stays. */
     final int contentLift;
+    /** hero_line_height: the headline's lines this many percent of the font's line height apart. */
+    final int heroLineHeight;
     /** hero_font: "montserrat" for the headline and caption in the bundled Montserrat Light; empty follows ui_font. */
     final String heroFont;
     /** caption_position: where hero_caption sits: "" above the dock, "bottom" in the bottom strip, "under_hero" under the headline. */
@@ -325,7 +327,8 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift) {
+                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight) {
+        this.heroLineHeight = heroLineHeight;
         this.contentLift = contentLift;
         this.glassTiles = glassTiles;
         this.monoTiles = monoTiles;
@@ -550,6 +553,7 @@ final class Config {
         boolean monoTiles = res.getBoolean(R.bool.mono_tiles);
         boolean glassTiles = res.getBoolean(R.bool.glass_tiles);
         int contentLift = res.getInteger(R.integer.content_lift);
+        int heroLineHeight = res.getInteger(R.integer.hero_line_height);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -684,6 +688,7 @@ final class Config {
             monoTiles = bool(json, "mono_tiles", monoTiles);
             glassTiles = bool(json, "glass_tiles", glassTiles);
             contentLift = integer(json, "content_lift", contentLift, 0, 120);
+            heroLineHeight = integer(json, "hero_line_height", heroLineHeight, 70, 130);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -800,7 +805,8 @@ final class Config {
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
                 pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
-                latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono, monoTiles, glassTiles, Math.max(0, Math.min(120, contentLift)));
+                latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono, monoTiles, glassTiles, Math.max(0, Math.min(120, contentLift)),
+                Math.max(70, Math.min(130, heroLineHeight)));
     }
 
     /**

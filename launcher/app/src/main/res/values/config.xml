@@ -521,6 +521,9 @@
          this many dp (0 to 120), the top bar's buttons staying where they are. 0 by default; a theme can set
          "content_lift": 24. -->
     <integer name="content_lift">0</integer>
+    <!-- hero_text: the headline's lines this many percent of the font's line height apart, 70 to 130. 95 by default;
+         a theme can set "hero_line_height": 85 for tighter lines. -->
+    <integer name="hero_line_height">95</integer>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

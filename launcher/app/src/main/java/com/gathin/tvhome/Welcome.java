@@ -76,6 +76,9 @@ final class Welcome {
     private Typeface heroFace;
     private LinearLayout weatherBlock;
     private TextView weatherText, weatherSummary, weatherPlace;
+    /** Today's range as a round gauge, when the add-on gives "high", "low", "sky" and "details". */
+    private TempGauge weatherGauge;
+    private static final float GAUGE_DP = 76;
     /** The icon now beside the line, by name; empty for none. */
     private String weatherIcon = "";
     private WeatherLine weather;
@@ -533,9 +536,21 @@ final class Welcome {
     // ---- weather at the bottom left -----------------------------------------------------------------
 
     private void addWeather(FrameLayout root, int at) {
+        // A row: today's range gauge (shown when the add-on gives the range), then the lines.
         weatherBlock = new LinearLayout(activity);
-        weatherBlock.setOrientation(LinearLayout.VERTICAL);
+        weatherBlock.setOrientation(LinearLayout.HORIZONTAL);
+        weatherBlock.setGravity(Gravity.CENTER_VERTICAL);
         weatherBlock.setFocusable(false);
+        weatherGauge = new TempGauge(activity, inter != null ? inter.at(400) : font(R.font.outfit_regular));
+        weatherGauge.setVisibility(View.GONE);
+        int g = Math.round(GAUGE_DP * density);
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(g, g);
+        glp.setMarginEnd(Math.round(14 * density));
+        weatherBlock.addView(weatherGauge, glp);
+        LinearLayout texts = new LinearLayout(activity);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        weatherBlock.addView(texts, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         weatherBlock.setVisibility(View.GONE);
         weatherText = new TextView(activity);
         weatherText.setTextColor(0xFFFFFFFF);
@@ -560,16 +575,16 @@ final class Welcome {
         weatherPlace.setSingleLine(true);
         softShadow(weatherPlace);
         // Each line its own width: a vertical LinearLayout's default is match_parent, which held the line to the place's width.
-        weatherBlock.addView(weatherText, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        texts.addView(weatherText, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         slp.topMargin = Math.round(4 * density);
-        weatherBlock.addView(weatherSummary, slp);
+        texts.addView(weatherSummary, slp);
         LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         plp.topMargin = Math.round(5 * density);
-        weatherBlock.addView(weatherPlace, plp);
+        texts.addView(weatherPlace, plp);
         if (inter != null) {
             inter.apply(weatherText);
             inter.apply(weatherSummary);
@@ -582,8 +597,18 @@ final class Welcome {
         root.addView(weatherBlock, at, lp);
     }
 
-    private void showWeather(String line, String place, String icon, String temp, String summary) {
+    private void showWeather(String line, String place, String icon, String temp, String summary, String[] range) {
         if (weatherBlock == null) return;
+        // With today's range: the gauge carries the temperature, so the first line is the sky's words.
+        Integer current = wholeDegrees(temp), high = wholeDegrees(range[0]), low = wholeDegrees(range[1]);
+        boolean gauge = current != null && high != null && low != null && !range[2].isEmpty() && !range[3].isEmpty();
+        weatherGauge.setVisibility(gauge ? View.VISIBLE : View.GONE);
+        if (gauge) {
+            weatherGauge.set(current, low, high);
+            weatherGauge.setContentDescription(null);
+            temp = range[2].substring(0, 1).toUpperCase(Locale.getDefault()) + range[2].substring(1);
+            summary = range[3];
+        }
         // With temp and summary: two lines that mirror the clock and date on the right, the temperature in the clock's
         // type and "MOSTLY SUNNY · WIND 2 M/S · ST ALBANS" in the date's, so the two blocks line up row for row.
         // Without them: the add-on's one line, and the place under it.
@@ -592,6 +617,7 @@ final class Welcome {
         if (split) {
             matchType(weatherText, R.id.clock);
             matchType(weatherSummary, R.id.date);
+            if (gauge) weatherGauge.face(weatherText.getTypeface());
             weatherText.setText(temp);
             weatherSummary.setText((place.isEmpty() ? summary : summary + " · " + place).toUpperCase(here));
         } else {
@@ -617,6 +643,12 @@ final class Welcome {
         weatherIcon = WeatherIcon.known(icon) ? icon : "";
         weatherBlock.setVisibility(line.isEmpty() ? View.GONE : View.VISIBLE);
         weatherBlock.setContentDescription(place.isEmpty() ? line : line + ", " + place);
+    }
+
+    /** "-3", "14" or "10°C" to whole degrees; null when there is no number. */
+    static Integer wholeDegrees(String s) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("-?\\d+").matcher(s == null ? "" : s.replace('\u2212', '-'));
+        return m.find() ? Integer.valueOf(m.group()) : null;
     }
 
     /** Gives a weather line the size, face, spacing, colour and font padding of the clock's or the date's text. */

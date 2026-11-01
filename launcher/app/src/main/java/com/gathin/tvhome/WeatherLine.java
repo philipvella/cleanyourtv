@@ -25,13 +25,15 @@ final class WeatherLine {
     static final long REREAD_MS = 30 * 60_000L;
     /**
      * "icon", "temp" and "summary" are optional: without the icon the line shows alone, and with temp and summary the
-     * temperature gets its own large line with the summary ("light rain · wind 10 m/s") under it.
+     * temperature gets its own large line with the summary ("light rain · wind 10 m/s") under it. With "high" and
+     * "low" (today's, as whole °C: "14", "6"), "sky" ("light rain") and "details" ("feels like 8° · wind 2 m/s") as
+     * well, the temperature is a round gauge of today's range beside the sky's words, with the details under them.
      */
-    private static final String[] COLUMNS = {"line", "place", "icon", "temp", "summary"};
+    private static final String[] COLUMNS = {"line", "place", "icon", "temp", "summary", "high", "low", "sky", "details"};
 
     /** Called on the main thread; an empty line hides the block. */
     interface Listener {
-        void onWeather(String line, String place, String icon, String temp, String summary);
+        void onWeather(String line, String place, String icon, String temp, String summary, String[] range);
     }
 
     private final Context ctx;
@@ -113,6 +115,7 @@ final class WeatherLine {
         try {
             io.execute(() -> {
                 String line = "", place = "", icon = "", temp = "", summary = "";
+                String[] range = {"", "", "", ""};   // high, low, sky, details
                 try (Cursor c = ctx.getContentResolver().query(uri, COLUMNS, null, null, null)) {
                     if (c != null && c.moveToFirst()) {
                         line = column(c, "line");
@@ -120,13 +123,14 @@ final class WeatherLine {
                         icon = column(c, "icon");
                         temp = column(c, "temp");
                         summary = column(c, "summary");
+                        for (int k = 0; k < range.length; k++) range[k] = column(c, COLUMNS[5 + k]);
                     }
                 } catch (RuntimeException gone) {
                     // Uninstalled or crashed mid-query: keep what is on screen.
                     return;
                 }
                 String l = line, p = place, i = icon, t = temp, s = summary;
-                main.post(() -> listener.onWeather(l, p, i, t, s));
+                main.post(() -> listener.onWeather(l, p, i, t, s, range));
             });
         } catch (RejectedExecutionException shutDown) {
             // Home is being destroyed.

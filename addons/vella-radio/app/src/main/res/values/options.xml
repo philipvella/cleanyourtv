@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Set before building. latitude and longitude pick the local stations (never sent anywhere); default_station is the
+     station OK on Home plays, by its id in Stations.java ("bbc_radio_two", "classic_fm"), or empty for the nearest
+     local station. Holding OK on a station in the list overrides it on the TV. -->
+<resources>
+    <string name="place" translatable="false">St Albans</string>
+    <string name="latitude" translatable="false">51.755</string>
+    <string name="longitude" translatable="false">-0.336</string>
+    <string name="default_station" translatable="false"></string>
+    <string name="app_name" translatable="false">Vella radio</string>
+    <string name="stations_title" translatable="false">Radio</string>
+</resources>

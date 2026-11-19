@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingLeanbackLauncher">
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- The stations' public streams (BBC, Global, Virgin, Times Radio). Nothing else is sent anywhere. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The radio keeps playing while you browse Home: a media-playback foreground service, only while it plays. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <application
+        android:allowBackup="false"
+        android:banner="@drawable/banner"
+        android:icon="@drawable/banner"
+        android:label="@string/app_name">
+
+        <!-- Clean Your TV launcher, radio_source: where Home reads what is playing. -->
+        <meta-data android:name="com.gathin.tvhome.radio" android:value="io.github.philipvella.vellaradio.now" />
+
+        <!-- Read-only and holding only what Home shows anyway: the station's name and whether it plays. -->
+        <provider
+            android:name=".RadioProvider"
+            android:authorities="io.github.philipvella.vellaradio.now"
+            android:exported="true" />
+
+        <!-- Play, stop or toggle; Home starts it with OK on the radio. Exported so the launcher can start it while it
+             is on screen; the worst another app can do with it is start or stop the radio. -->
+        <service
+            android:name=".RadioService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="com.gathin.tvhome.action.RADIO" />
+            </intent-filter>
+        </service>
+
+        <!-- The stations near the TV and the national ones; hold OK to make one the default. Back returns to Home. -->
+        <activity
+            android:name=".StationsActivity"
+            android:exported="true"
+            android:label="@string/stations_title"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+            <intent-filter>
+                <action android:name="com.gathin.tvhome.action.RADIO_STATIONS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

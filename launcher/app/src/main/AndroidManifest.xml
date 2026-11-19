@@ -38,6 +38,13 @@
         <intent>
             <action android:name="com.gathin.tvhome.action.WEATHER_FORECAST" />
         </intent>
+        <!-- radio_source: the add-on's player and station list (RadioLine). -->
+        <intent>
+            <action android:name="com.gathin.tvhome.action.RADIO" />
+        </intent>
+        <intent>
+            <action android:name="com.gathin.tvhome.action.RADIO_STATIONS" />
+        </intent>
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />

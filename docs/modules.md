@@ -144,3 +144,19 @@ the `game_day` key (`config.xml` or a theme); there is no card prompt for it.
    pressed on Home, right after a row ends, and on each change, and watches only while Home is on screen.
 
 The [Game Day](../addons/README.md) add-on implements this from calendar links the person adds.
+
+## A radio in the middle of Home (radio_source)
+
+With `header_bottom`, an app can put what it plays in the middle of the bottom strip. The owner opts in by naming
+the package in `radio_source`. The app streams; the launcher reads one row and starts one service, and stays offline.
+
+1. Name a read-only provider in a `meta-data` on your `<application>`, `com.gathin.tvhome.radio`. Its
+   `content://<authority>/now` row has `station` (the name Home shows), `owner` and `state`: `playing`,
+   `loading`, `stopped` or `error`. Call `notifyChange` on that URI when it changes. No row hides the block.
+2. A service for the action `com.gathin.tvhome.action.RADIO`, exported, that takes the extra `command` =
+   `toggle`. Home starts it with `startForegroundService` while Home is on screen, so the service must call
+   `startForeground` on every start, even one that stops it.
+3. Optionally, an activity for `com.gathin.tvhome.action.RADIO_STATIONS`, which holding OK (or Menu) on the radio
+   opens.
+
+`addons/vella-radio` implements this with the BBC's, Global's, Virgin's and Times Radio's free public streams.

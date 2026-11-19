@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A radio's speaker and dial on the theme's dark ground: our own art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF0B0908" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M96,62h128a14,14 0,0 1,14 14v54a14,14 0,0 1,-14 14h-128a14,14 0,0 1,-14 -14v-54a14,14 0,0 1,14 -14z" />
+    <path android:fillColor="#FF0B0908" android:pathData="M132,103m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M132,103m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
+    <path android:fillColor="#FF0B0908" android:pathData="M172,86h44v6h-44zM172,100h44v6h-44zM172,114h30v6h-30z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="5" android:strokeLineCap="round"
+        android:pathData="M112,58L196,30" />
+</vector>

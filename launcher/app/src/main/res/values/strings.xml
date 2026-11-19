@@ -181,6 +181,13 @@
     <string name="game_live">Live now</string>
     <string name="next_sunrise" translatable="false">Sunrise %1$s</string>
     <string name="next_sunset" translatable="false">Sunset %1$s</string>
+    <!-- radio_source: the second line under the station, and what OK does while it is focused. -->
+    <string name="radio_live" translatable="false">Live</string>
+    <string name="radio_tuning" translatable="false">Tuning in…</string>
+    <string name="radio_off" translatable="false">Radio</string>
+    <string name="radio_error" translatable="false">No signal</string>
+    <string name="radio_hint_play" translatable="false">OK play · hold for stations</string>
+    <string name="radio_hint_stop" translatable="false">OK stop · hold for stations</string>
     <string name="calendar_hint" translatable="false">‹ › month  ·  OK today</string>
     <string name="calendar_today" translatable="false">Today</string>
     <string name="calendar_this_month" translatable="false">This month</string>

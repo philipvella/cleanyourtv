@@ -102,6 +102,12 @@ final class Welcome {
     /** The icon now beside the line, by name; empty for none. */
     private String weatherIcon = "";
     private WeatherLine weather;
+    /** radio_source: the station in the middle of the strip, its two lines, and the add-on behind it; null when off. */
+    private RadioLine radio;
+    private LinearLayout radioBlock;
+    private TextView radioName, radioState;
+    private View radioFrame;
+    private String radioNow = "";
     /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
     static final String FORECAST = "com.gathin.tvhome.action.WEATHER_FORECAST";
     private Intent forecast;
@@ -125,7 +131,7 @@ final class Welcome {
 
     static boolean wanted(Config cfg) {
         return !cfg.heroText.isEmpty() || !cfg.heroCaption.isEmpty() || cfg.headerBottom || cfg.pillLabelsOnly
-                || !cfg.weatherSource.isEmpty() || cfg.smallPills
+                || !cfg.weatherSource.isEmpty() || cfg.smallPills || (!cfg.radioSource.isEmpty() && cfg.headerBottom)
                 || ((cfg.nextSunTime || cfg.clockGauge) && !cfg.latitude.isEmpty());
     }
 
@@ -172,6 +178,10 @@ final class Welcome {
             w.weather = WeatherLine.create(activity, cfg.weatherSource, main, w::showWeather);
             if (w.weather != null) w.addWeather(root, root.indexOfChild(content));
         }
+        if (!cfg.radioSource.isEmpty() && cfg.headerBottom) {
+            w.radio = RadioLine.create(activity, cfg.radioSource, main, w::showRadio);
+            if (w.radio != null) w.addRadio(root, root.indexOfChild(content));
+        }
         // Each block drawn through a plain canvas, so High contrast text does not stroke it (PlainTextFrame).
         if (w.heroGroup != null) w.plain(w.heroGroup);
         else if (w.headline != null) w.plain(w.headline);
@@ -180,6 +190,10 @@ final class Welcome {
         if (w.weatherBlock != null) w.weatherFrame = w.plain(w.weatherBlock);
         if (w.weatherBlock != null) w.forecast = w.forecastIntent(cfg.weatherSource.trim());
         if (w.forecast != null) w.makeWeatherOpen();
+        if (w.radioBlock != null) {
+            w.radioFrame = w.plain(w.radioBlock);
+            w.makeRadioOpen();
+        }
         if (cfg.clockCalendar && cfg.headerBottom) {
             w.makeClockOpen(cfg.seasonalDates, Holidays.region(cfg.publicHolidays,
                     java.time.ZoneId.systemDefault().getId(), cfg.latitude, cfg.longitude));
@@ -859,6 +873,143 @@ final class Welcome {
         t.setIncludeFontPadding(model.getIncludeFontPadding());
     }
 
+    // ---- radio in the middle -------------------------------------------------------------------------
+
+    /** Two lines centred in the strip, level with the gauges: the station in the date's capitals, then its state. */
+    private void addRadio(FrameLayout root, int at) {
+        radioBlock = new LinearLayout(activity);
+        radioBlock.setOrientation(LinearLayout.VERTICAL);
+        radioBlock.setGravity(Gravity.CENTER);
+        radioBlock.setMinimumHeight(Math.round(GAUGE_DP * density));
+        radioBlock.setPadding(Math.round(14 * density), 0, Math.round(14 * density), 0);
+        radioBlock.setVisibility(View.GONE);
+        radioName = new TextView(activity);
+        radioName.setSingleLine(true);
+        radioName.setGravity(Gravity.CENTER);
+        softShadow(radioName);
+        radioState = new TextView(activity);
+        radioState.setSingleLine(true);
+        radioState.setGravity(Gravity.CENTER);
+        softShadow(radioState);
+        matchType(radioName, R.id.date);
+        matchType(radioState, R.id.date);
+        radioName.setTextColor(0xFFFFFFFF);
+        radioState.setTextColor(0xB3FFFFFF);
+        radioBlock.addView(radioName, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        slp.topMargin = Math.round(6 * density);
+        radioBlock.addView(radioState, slp);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        lp.bottomMargin = Math.round(BOTTOM_MARGIN_DP * density);
+        root.addView(radioBlock, at, lp);
+    }
+
+    private void showRadio(String station, String owner, String state) {
+        if (radioBlock == null) return;
+        radioNow = state;
+        Locale here = Locale.getDefault();
+        radioName.setText(station.toUpperCase(here));
+        int size = Math.round(13 * density);
+        RadioGlyph glyph = new RadioGlyph(RadioGlyph.kind(state));
+        glyph.setBounds(0, 0, size, size);
+        radioName.setCompoundDrawables(glyph, null, null, null);
+        radioName.setCompoundDrawablePadding(Math.round(8 * density));
+        radioState.setText(radioStateText(state, radioBlock.isFocused()).toUpperCase(here));
+        radioBlock.setVisibility(station.isEmpty() ? View.GONE : View.VISIBLE);
+        radioBlock.setContentDescription(station + ", " + radioStateText(state, false));
+    }
+
+    /** The second line: what the radio is doing, and while focused what OK does. */
+    private String radioStateText(String state, boolean focused) {
+        boolean on = "playing".equals(state), tuning = "loading".equals(state);
+        if (focused) {
+            return activity.getString(on || tuning ? R.string.radio_hint_stop : R.string.radio_hint_play);
+        }
+        return activity.getString(on ? R.string.radio_live : tuning ? R.string.radio_tuning
+                : "error".equals(state) ? R.string.radio_error : R.string.radio_off);
+    }
+
+    /** The radio takes focus like the weather and the clock: OK plays or stops, holding OK or Menu opens the stations. */
+    private void makeRadioOpen() {
+        Runnable stations = () -> {
+            Intent list = radio.stations();
+            if (list == null) return;
+            try {
+                activity.startActivity(list);
+            } catch (ActivityNotFoundException | SecurityException gone) {
+                // The add-on was removed since Home started.
+            }
+        };
+        makeOpenable(radioBlock, radioFrame != null ? radioFrame : radioBlock, () -> {
+            // Answer at once; the add-on's own state follows a moment later.
+            if (radio.toggle()) {
+                boolean on = "playing".equals(radioNow) || "loading".equals(radioNow);
+                radioState.setText(activity.getString(on ? R.string.radio_off : R.string.radio_tuning)
+                        .toUpperCase(Locale.getDefault()));
+            }
+        }, stations, focused -> radioState.setText(radioStateText(radioNow, focused).toUpperCase(Locale.getDefault())));
+    }
+
+    /** The radio's mark before the station: bars while it plays, dots while it tunes in, a play triangle when off. */
+    static final class RadioGlyph extends android.graphics.drawable.Drawable {
+        static final int OFF = 0, PLAYING = 1, TUNING = 2;
+        private final int kind;
+        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Path path = new android.graphics.Path();
+
+        RadioGlyph(int kind) {
+            this.kind = kind;
+            paint.setColor(0xFFFFFFFF);
+        }
+
+        static int kind(String state) {
+            return "playing".equals(state) ? PLAYING : "loading".equals(state) ? TUNING : OFF;
+        }
+
+        @Override
+        public void draw(@NonNull android.graphics.Canvas c) {
+            android.graphics.Rect b = getBounds();
+            float w = b.width(), h = b.height(), x = b.left, y = b.top;
+            if (kind == PLAYING) {
+                // Three bars of a level meter.
+                float bar = w / 5f;
+                float[] tall = {0.55f, 1f, 0.75f};
+                for (int i = 0; i < 3; i++) {
+                    float left = x + i * 2 * bar;
+                    c.drawRoundRect(left, y + h * (1 - tall[i]), left + bar, y + h, bar / 2, bar / 2, paint);
+                }
+            } else if (kind == TUNING) {
+                float r = w / 9f;
+                for (int i = 0; i < 3; i++) c.drawCircle(x + r + i * (w - 2 * r) / 2f, y + h / 2f, r, paint);
+            } else {
+                path.reset();
+                path.moveTo(x + w * 0.15f, y);
+                path.lineTo(x + w * 0.95f, y + h / 2f);
+                path.lineTo(x + w * 0.15f, y + h);
+                path.close();
+                c.drawPath(path, paint);
+            }
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(android.graphics.ColorFilter filter) {
+            paint.setColorFilter(filter);
+        }
+
+        @Override
+        public int getOpacity() {
+            return android.graphics.PixelFormat.TRANSLUCENT;
+        }
+    }
+
     /** The add-on's forecast screen, when the weather_source package has one; else null. */
     private Intent forecastIntent(String pkg) {
         Intent i = new Intent(FORECAST).setPackage(pkg);
@@ -925,21 +1076,60 @@ final class Welcome {
      * the app row, Left and Right move between the weather and the clock, and Down stays put.
      */
     private void makeOpenable(View block, View frame, Runnable open) {
+        makeOpenable(block, frame, open, null, null);
+    }
+
+    /** As above, with what holding OK (or Menu) does, and a call when focus comes or goes; either may be null. */
+    private void makeOpenable(View block, View frame, Runnable open, Runnable hold,
+                              java.util.function.Consumer<Boolean> focusChanged) {
         block.setFocusable(true);
         block.setClickable(true);
-        block.setOnClickListener(v -> open.run());
+        // Held OK: the View's own long click, or the key's long-press flag, whichever comes first; once per press.
+        boolean[] held = {false};
+        block.setOnClickListener(v -> {
+            if (!held[0]) open.run();
+        });
+        if (hold != null) {
+            block.setLongClickable(true);
+            block.setOnLongClickListener(v -> {
+                if (!held[0]) {
+                    held[0] = true;
+                    hold.run();
+                }
+                return true;
+            });
+        }
         block.setOnKeyListener((v, keyCode, event) -> {
+            if (hold != null && keyCode == KeyEvent.KEYCODE_MENU) {
+                if (event.getAction() == KeyEvent.ACTION_UP) hold.run();
+                return true;
+            }
+            if (hold != null && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                    held[0] = false;
+                } else if (event.getAction() == KeyEvent.ACTION_DOWN && event.isLongPress() && !held[0]) {
+                    held[0] = true;
+                    v.cancelLongPress();
+                    hold.run();
+                    return true;
+                } else if (event.getAction() == KeyEvent.ACTION_UP && held[0]) {
+                    v.setPressed(false);
+                    return true;
+                }
+            }
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             switch (keyCode) {
                 case KeyEvent.KEYCODE_DPAD_UP:
                     if (bottomUp != null) bottomUp.run();
                     return true;
                 case KeyEvent.KEYCODE_DPAD_LEFT:
-                    if (v == clockTarget && openable(weatherBlock, forecast != null)) weatherBlock.requestFocus();
+                case KeyEvent.KEYCODE_DPAD_RIGHT: {
+                    java.util.List<View> strip = strip();
+                    int i = strip.indexOf(v) + (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+                    if (i >= 0 && i < strip.size()) strip.get(i).requestFocus();
                     return true;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    if (v == weatherBlock && openable(clockTarget, true)) clockTarget.requestFocus();
-                    return true;
+                }
                 case KeyEvent.KEYCODE_DPAD_DOWN:
                     return true;
                 default:
@@ -956,6 +1146,7 @@ final class Welcome {
             int l = frame.getPaddingLeft(), t = frame.getPaddingTop(), r = frame.getPaddingRight(), b = frame.getPaddingBottom();
             frame.setBackground(focused ? focusRing : null);
             frame.setPadding(l, t, r, b);
+            if (focusChanged != null) focusChanged.accept(focused);
         });
     }
 
@@ -968,31 +1159,45 @@ final class Welcome {
      * the one on the side of the screen the tile is on ({@code across}: the tile's centre, 0 at the left to 1).
      */
     boolean focusBottom(float across, Runnable up) {
-        boolean weatherOk = openable(weatherBlock, forecast != null), clockOk = openable(clockTarget, true);
-        View target = clockOk && (!weatherOk || across > 0.5f) ? clockTarget : weatherOk ? weatherBlock : null;
-        if (target == null) return false;
+        java.util.List<View> strip = strip();
+        if (strip.isEmpty()) return false;
+        // The strip's blocks share the screen's width: the one under the tile's share of it.
+        int i = Math.max(0, Math.min(strip.size() - 1, (int) (across * strip.size())));
         bottomUp = up;
-        return target.requestFocus();
+        return strip.get(i).requestFocus();
+    }
+
+    /** The bottom strip's blocks that can take focus now, left to right: the weather, the radio, the clock. */
+    private java.util.List<View> strip() {
+        java.util.List<View> out = new java.util.ArrayList<>(3);
+        if (openable(weatherBlock, forecast != null)) out.add(weatherBlock);
+        if (openable(radioBlock, radio != null)) out.add(radioBlock);
+        if (openable(clockTarget, true)) out.add(clockTarget);
+        return out;
     }
 
     // ---- lifecycle ----------------------------------------------------------------------------------
 
     void start() {
         if (weather != null) weather.start();
+        if (radio != null) radio.start();
         if (sunLine != null || clockGauge != null) sunTick();
     }
 
     void stop() {
         if (weather != null) weather.stop();
+        if (radio != null) radio.stop();
         if (main != null) main.removeCallbacks(sunTick);
     }
 
     void homeAgain() {
         if (weather != null) weather.read();
+        if (radio != null) radio.read();
     }
 
     void shutdown() {
         if (weather != null) weather.shutdown();
+        if (radio != null) radio.shutdown();
         if (main != null) main.removeCallbacks(sunTick);
     }
 }

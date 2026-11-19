@@ -514,6 +514,10 @@
     <!-- clock_gauge: the clock's ring in white, its passed part dimmed, instead of the day's warm and the night's blue
          tints. Off by default; a theme can set "clock_mono": true. -->
     <bool name="clock_mono">false</bool>
+    <!-- radio_source: the package of a radio add-on (docs/modules.md), whose station shows in the middle of the bottom
+         strip with header_bottom: OK plays or stops it, holding OK opens its station list. The add-on streams; the
+         launcher only reads what it publishes and stays offline. Empty is off; a theme can set "radio_source". -->
+    <string name="radio_source" translatable="false"></string>
     <!-- App tiles in greyscale, fading to their own colours only while focused, so the screen stays calm and the
          focused app stands out. Off by default; a theme can set "mono_tiles": true. -->
     <bool name="mono_tiles">false</bool>

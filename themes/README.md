@@ -123,6 +123,7 @@ A new key needs one there in the same pull request.
 | `weather_place` | boolean | With `weather_source`: the place's name under the weather. On by default; `false` leaves it out |
 | `weather_mono` | boolean | With `weather_source`: the weather's icon and temperature ring in white only, like the clock and the date. Off by default |
 | `clock_mono` | boolean | With `clock_gauge`: the clock's ring in white, its passed part dimmed, instead of the day's warm and the night's blue tints. Off by default |
+| `radio_source` | string | With `header_bottom`: the package of a radio add-on (docs/modules.md). Its station shows in the middle of the bottom strip; OK plays or stops it, holding OK opens its station list. The add-on streams, the launcher stays offline. Empty (off) by default |
 | `mono_tiles` | boolean | App tiles in greyscale, fading to their own colours only while focused, so the screen stays calm and the focused app stands out. Off by default |
 | `glass_tiles` | boolean | App tiles as panes of glass: a rim that catches the light at the top and bottom, a soft sheen and a little of the wallpaper showing through, solid only while focused. Drawn, not blurred. Off by default |
 | `content_lift` | number | With `hero_text` or the bottom strip (`header_bottom`, `weather_source`): the dock and the hero above it raised by this many dp, 0 to 120, while the top bar's buttons stay put. 0 by default |

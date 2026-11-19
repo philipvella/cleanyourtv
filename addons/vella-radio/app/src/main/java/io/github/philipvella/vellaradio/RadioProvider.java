@@ -8,7 +8,7 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 
 /**
- * What is playing, for the Clean Your TV launcher's radio_source: the station's name, who runs it, and its state
+ * What is playing, for the Clean Your TV launcher's radio_source: the station's short name (Stations.shortName), who runs it, and its state
  * (playing, loading, stopped or error). Read-only and exported without a permission: it holds only what Home shows.
  */
 public final class RadioProvider extends ContentProvider {
@@ -28,7 +28,7 @@ public final class RadioProvider extends ContentProvider {
         if (ctx == null) return null;
         Stations.Station s = Radio.shown(ctx);
         MatrixCursor c = new MatrixCursor(COLUMNS);
-        if (s != null) c.addRow(new Object[] {s.name, s.owner, Radio.state(), s.id});
+        if (s != null) c.addRow(new Object[] {Stations.shortName(s), s.owner, Radio.state(), s.id});
         c.setNotificationUri(ctx.getContentResolver(), NOW);
         return c;
     }

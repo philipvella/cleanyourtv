@@ -107,7 +107,7 @@ final class Welcome {
     private LinearLayout radioBlock;
     private TextView radioName, radioState;
     private View radioFrame;
-    private String radioNow = "";
+    private String radioNow = "", radioOwner = "";
     /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
     static final String FORECAST = "com.gathin.tvhome.action.WEATHER_FORECAST";
     private Intent forecast;
@@ -910,6 +910,7 @@ final class Welcome {
     private void showRadio(String station, String owner, String state) {
         if (radioBlock == null) return;
         radioNow = state;
+        radioOwner = owner;
         Locale here = Locale.getDefault();
         radioName.setText(station.toUpperCase(here));
         int size = Math.round(13 * density);
@@ -928,8 +929,10 @@ final class Welcome {
         if (focused) {
             return activity.getString(on || tuning ? R.string.radio_hint_stop : R.string.radio_hint_play);
         }
-        return activity.getString(on ? R.string.radio_live : tuning ? R.string.radio_tuning
+        String now = activity.getString(on ? R.string.radio_live : tuning ? R.string.radio_tuning
                 : "error".equals(state) ? R.string.radio_error : R.string.radio_off);
+        // The broadcaster first, so a short station name ("Three Counties") still says whose it is.
+        return radioOwner.isEmpty() ? now : radioOwner + " · " + now;
     }
 
     /** The radio takes focus like the weather and the clock: OK plays or stops, holding OK or Menu opens the stations. */
@@ -947,8 +950,7 @@ final class Welcome {
             // Answer at once; the add-on's own state follows a moment later.
             if (radio.toggle()) {
                 boolean on = "playing".equals(radioNow) || "loading".equals(radioNow);
-                radioState.setText(activity.getString(on ? R.string.radio_off : R.string.radio_tuning)
-                        .toUpperCase(Locale.getDefault()));
+                radioState.setText(radioStateText(on ? "stopped" : "loading", false).toUpperCase(Locale.getDefault()));
             }
         }, stations, focused -> radioState.setText(radioStateText(radioNow, focused).toUpperCase(Locale.getDefault())));
     }

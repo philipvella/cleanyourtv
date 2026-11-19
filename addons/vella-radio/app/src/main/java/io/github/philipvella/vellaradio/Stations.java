@@ -131,6 +131,23 @@ final class Stations {
             other("times_radio", "Times Radio", "Times", "https://timesradio.wireless.radio/stream"),
     };
 
+    /**
+     * The name Home shows, with the owner on the line under it: "BBC Three Counties Radio" is "Three Counties",
+     * "BBC Radio 2" is "Radio 2", "BBC Radio 6 Music" is "6 Music". The nations keep "Radio" ("Radio Scotland");
+     * the others' names are short already.
+     */
+    static String shortName(Station s) {
+        String n = s.name;
+        if (!n.startsWith("BBC ")) return n;
+        n = n.substring(4);
+        if (n.startsWith("Radio 6 ")) return n.substring(6);
+        if (!s.local()) return n.startsWith("Radio ") && !Character.isDigit(n.charAt(6)) ? n.substring(6) : n;
+        if (s.reachKm >= 90) return n;
+        if (n.startsWith("Radio ")) n = n.substring(6);
+        if (n.endsWith(" Radio")) n = n.substring(0, n.length() - 6);
+        return n;
+    }
+
     static Station byId(String id) {
         if (id == null) return null;
         for (Station s : ALL) if (s.id.equals(id.trim())) return s;

@@ -108,6 +108,8 @@ final class Welcome {
     private TextView radioName, radioState;
     private View radioFrame;
     private String radioNow = "", radioOwner = "";
+    /** The radio's lines, as a share of the date's size. */
+    private static final float RADIO_SCALE = 0.8f;
     /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
     static final String FORECAST = "com.gathin.tvhome.action.WEATHER_FORECAST";
     private Intent forecast;
@@ -893,6 +895,9 @@ final class Welcome {
         softShadow(radioState);
         matchType(radioName, R.id.date);
         matchType(radioState, R.id.date);
+        // A size under the date's, so the middle stays quieter than the weather and the clock beside it.
+        radioName.setTextSize(TypedValue.COMPLEX_UNIT_PX, radioName.getTextSize() * RADIO_SCALE);
+        radioState.setTextSize(TypedValue.COMPLEX_UNIT_PX, radioState.getTextSize() * RADIO_SCALE);
         radioName.setTextColor(0xFFFFFFFF);
         radioState.setTextColor(0xB3FFFFFF);
         radioBlock.addView(radioName, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -913,7 +918,7 @@ final class Welcome {
         radioOwner = owner;
         Locale here = Locale.getDefault();
         radioName.setText(station.toUpperCase(here));
-        int size = Math.round(13 * density);
+        int size = Math.round(11 * density);
         RadioGlyph glyph = new RadioGlyph(RadioGlyph.kind(state));
         glyph.setBounds(0, 0, size, size);
         radioName.setCompoundDrawables(glyph, null, null, null);

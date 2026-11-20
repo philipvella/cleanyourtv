@@ -19,7 +19,7 @@ import java.util.Random;
 /**
  * seasonal_scenes: a full-screen layer between the wallpaper and Home's text and tiles that plays the day's scene
  * (Season): autumn leaves, Halloween ghosts and glowing pumpkins, fireworks, Christmas snow with Father Christmas's
- * sleigh, winter snow, Valentine's hearts, spring blossom, summer fireflies, New Year fireworks and gold confetti,
+ * sleigh under a string of twinkling fairy lights with falling baubles and gold stars, winter snow, Valentine's hearts, spring blossom, summer fireflies, New Year fireworks and gold confetti,
  * Pancake Day pancakes, St Patrick's shamrocks, Easter eggs, Mothering Sunday flowers, Father's Day ties, birthday
  * balloons and confetti, anniversary rose petals and gold sparkles. Everything is drawn in code (Halloween reuses the
  * launcher's own ghost and pumpkin pictures), at about 30 frames a second and only between {@link #start} and
@@ -38,7 +38,8 @@ final class SeasonView extends View {
 
     // Particle kinds; a scene uses one or two.
     private static final int LEAF = 0, PETAL = 1, FLAKE = 2, HEART = 3, FIREFLY = 4, GHOST = 5, CONFETTI = 6,
-            PANCAKE = 7, SHAMROCK = 8, EGG = 9, FLOWER = 10, TIE = 11, BALLOON = 12, ROSE = 13, SPARKLE = 14;
+            PANCAKE = 7, SHAMROCK = 8, EGG = 9, FLOWER = 10, TIE = 11, BALLOON = 12, ROSE = 13, SPARKLE = 14,
+            BAUBLE = 15, STAR = 16;
 
     private final float dp;
     private final Random rnd = new Random();
@@ -47,7 +48,7 @@ final class SeasonView extends View {
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Path leaf = new Path(), heart = new Path(), petal = new Path(), egg = new Path(), tie = new Path(),
-            zigzag = new Path(), rose = new Path();
+            zigzag = new Path(), rose = new Path(), star = new Path(), garland = new Path();
     private final RectF oval = new RectF();
 
     private Scene scene = Scene.NONE;
@@ -71,8 +72,12 @@ final class SeasonView extends View {
     private float nextBurst;
 
     // Christmas: the sleigh's next crossing, in seconds since start.
-    private float sleighStart = 6;
-    private static final float SLEIGH_SECONDS = 16, SLEIGH_EVERY = 75;
+    private float sleighStart = 3;
+    private static final float SLEIGH_SECONDS = 16, SLEIGH_EVERY = 40;
+    // Christmas: fairy lights draped along the top edge, a bulb every LIGHT_GAP dp on scallops SWAG dp wide.
+    private static final float LIGHT_GAP = 34, SWAG = 204, SAG = 16, LIGHT_TOP = 4;
+    private static final int[] LIGHTS = {0xFFFF3B30, 0xFF34C759, 0xFFFFC83D, 0xFF4FA3FF, 0xFFFF7AC8};
+    private static final int[] BAUBLES = {0xFFC62828, 0xFFE53935, 0xFF2E7D32, 0xFFFFC107, 0xFF1565C0, 0xFFB0BEC5};
 
     private static final int[] AUTUMN = {0xFFC0392B, 0xFFE67E22, 0xFFF1C40F, 0xFFA04000, 0xFFD35400, 0xFF8E5A2B};
     private static final int[] BLOSSOM = {0xFFF8BBD0, 0xFFF48FB1, 0xFFFCE4EC, 0xFFFFFFFF};
@@ -136,6 +141,14 @@ final class SeasonView extends View {
         rose.quadTo(0, -0.3f, 0.12f, -0.42f);
         rose.cubicTo(0.5f, -0.45f, 0.55f, 0.2f, 0, 0.5f);
         rose.close();
+        // A five-pointed star.
+        for (int p = 0; p < 10; p++) {
+            double a = -Math.PI / 2 + p * Math.PI / 5;
+            float r = p % 2 == 0 ? 0.5f : 0.21f;
+            if (p == 0) star.moveTo((float) Math.cos(a) * r, (float) Math.sin(a) * r);
+            else star.lineTo((float) Math.cos(a) * r, (float) Math.sin(a) * r);
+        }
+        star.close();
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeCap(Paint.Cap.ROUND);
     }
@@ -190,7 +203,7 @@ final class SeasonView extends View {
             case AUTUMN: kindA = LEAF; count = 14; break;
             case SPRING: kindA = PETAL; count = 22; break;
             case WINTER: kindA = FLAKE; count = 60; break;
-            case CHRISTMAS: kindA = FLAKE; count = 48; break;
+            case CHRISTMAS: kindA = BAUBLE; kindB = FLAKE; split = 16; count = 50; break;
             case VALENTINE: kindA = HEART; count = 14; break;
             case SUMMER: kindA = FIREFLY; count = 18; break;
             case HALLOWEEN: kindA = GHOST; count = 5; break;
@@ -213,7 +226,16 @@ final class SeasonView extends View {
         for (int i = 0; i < count; i++) spawn(i, w, h, true);
         for (int b = 0; b < BURSTS; b++) bt[b] = -1;
         nextBurst = 0.5f;
-        sleighStart = 6;
+        sleighStart = 3;
+        if (s == Scene.CHRISTMAS) {
+            // The fairy lights' wire: one scallop between each pair of hooks along the top.
+            float swag = SWAG * dp;
+            garland.reset();
+            garland.moveTo(0, LIGHT_TOP * dp);
+            for (float x0 = 0; x0 < w; x0 += swag) {
+                garland.quadTo(x0 + swag / 2, (LIGHT_TOP + SAG * 2) * dp, x0 + swag, LIGHT_TOP * dp);
+            }
+        }
         if (s == Scene.HALLOWEEN && ghost == null) {
             ghost = BitmapFactory.decodeResource(getResources(), R.drawable.halloween_ghost);
             pumpkin = BitmapFactory.decodeResource(getResources(), R.drawable.halloween_pumpkin_lit);
@@ -321,6 +343,20 @@ final class SeasonView extends View {
                 size[i] = (12 + rnd.nextFloat() * 9) * dp;
                 colour[i] = any(ROSES);
                 break;
+            case BAUBLE:
+                // About a third are gold stars instead.
+                if (rnd.nextInt(3) == 0) {
+                    kind[i] = STAR;
+                    falling(i, h, anywhere, 18, 16, 14);
+                    size[i] = (14 + rnd.nextFloat() * 10) * dp;
+                    colour[i] = any(GOLD);
+                    spin[i] *= 0.6f;
+                } else {
+                    falling(i, h, anywhere, 20, 16, 12);
+                    size[i] = (16 + rnd.nextFloat() * 12) * dp;
+                    colour[i] = any(BAUBLES);
+                }
+                break;
             case SPARKLE:
                 y[i] = rnd.nextFloat() * h;
                 vx[i] = (10 + rnd.nextFloat() * 30) * dp;
@@ -360,7 +396,10 @@ final class SeasonView extends View {
             }
             drawParticle(c, i, t, h);
         }
-        if (scene == Scene.CHRISTMAS) drawSleigh(c, t, w, h);
+        if (scene == Scene.CHRISTMAS) {
+            drawLights(c, t, w);
+            drawSleigh(c, t, w, h);
+        }
     }
 
     private void drawParticle(Canvas c, int i, float t, int h) {
@@ -430,6 +469,23 @@ final class SeasonView extends View {
                 fill.setColor(colour[i]);
                 fill.setAlpha(230);
                 c.drawRect(-s / 2 * turn, -s / 3, s / 2 * turn, s / 3, fill);
+                c.restore();
+                break;
+            }
+            case BAUBLE:
+                drawBauble(c, i, px, py, t);
+                break;
+            case STAR: {
+                float twinkle = 0.75f + 0.25f * (float) Math.sin(t * 3 + phase[i]);
+                fill.setColor(colour[i]);
+                fill.setAlpha((int) (60 * twinkle));
+                c.drawCircle(px, py, size[i] * 0.7f, fill);                // a soft glow
+                c.save();
+                c.translate(px, py);
+                c.rotate(rot[i]);
+                c.scale(size[i], size[i]);
+                fill.setAlpha((int) (240 * twinkle));
+                c.drawPath(star, fill);
                 c.restore();
                 break;
             }
@@ -552,6 +608,56 @@ final class SeasonView extends View {
         c.drawLine(px + wave, py + s * 0.95f, px - wave, py + s * 1.35f, line);
     }
 
+    /** A Christmas bauble, rocking as it falls: the ball, its gold cap and loop, a band and a shine. */
+    private void drawBauble(Canvas c, int i, float px, float py, float t) {
+        float s = size[i], r = s / 2;
+        c.save();
+        c.translate(px, py);
+        c.rotate((float) Math.sin(t * 0.9f + phase[i]) * 18);
+        fill.setColor(colour[i]);
+        fill.setAlpha(235);
+        c.drawCircle(0, 0, r, fill);
+        line.setColor(0x66FFFFFF);                                   // a band round the middle
+        line.setStrokeWidth(r * 0.12f);
+        oval.set(-r, -r * 0.18f, r, r * 0.18f);
+        c.drawArc(oval, 0, 180, false, line);
+        fill.setColor(0xFFE6B800);                                   // the cap and its loop
+        oval.set(-r * 0.3f, -r * 1.18f, r * 0.3f, -r * 0.88f);
+        c.drawRect(oval, fill);
+        line.setColor(0xFFE6B800);
+        line.setStrokeWidth(r * 0.1f);
+        c.drawCircle(0, -r * 1.32f, r * 0.15f, line);
+        fill.setColor(0x99FFFFFF);                                   // the shine
+        oval.set(-r * 0.6f, -r * 0.62f, -r * 0.2f, -r * 0.18f);
+        c.drawOval(oval, fill);
+        c.restore();
+    }
+
+    /** Fairy lights along the top: a dark wire in scallops, and bulbs in turn red, green, gold, blue and pink, twinkling. */
+    private void drawLights(Canvas c, float t, int w) {
+        line.setColor(0x995F7A5F);
+        line.setStrokeWidth(1.6f * dp);
+        c.drawPath(garland, line);
+        float gap = LIGHT_GAP * dp, swag = SWAG * dp;
+        int n = 0;
+        for (float bx0 = gap / 2; bx0 < w; bx0 += gap, n++) {
+            float f = (bx0 % swag) / swag;
+            // On the scallop: the quadratic's height at f, plus the bulb hanging below the wire.
+            float wy = (LIGHT_TOP + SAG * 2 * 2 * f * (1 - f)) * dp;
+            int col = LIGHTS[n % LIGHTS.length];
+            float on = 0.55f + 0.45f * (float) Math.sin(t * (1.6f + (n * 7 % 5) * 0.35f) + n * 1.9f);
+            fill.setColor(col);
+            fill.setAlpha((int) (70 * on));
+            c.drawCircle(bx0, wy + 7 * dp, 9 * dp, fill);                 // its glow
+            fill.setAlpha((int) (140 + 115 * on));
+            oval.set(bx0 - 3.2f * dp, wy + 2.5f * dp, bx0 + 3.2f * dp, wy + 12 * dp);
+            c.drawOval(oval, fill);
+            fill.setColor(0xFF2B3A2B);                                       // the socket
+            oval.set(bx0 - 2.2f * dp, wy, bx0 + 2.2f * dp, wy + 3.5f * dp);
+            c.drawRect(oval, fill);
+        }
+    }
+
     // ---- Father Christmas ----------------------------------------------------------------------------
 
     /** Every SLEIGH_EVERY seconds, the sleigh and three reindeer cross the top of the screen, left to right. */
@@ -578,16 +684,27 @@ final class SeasonView extends View {
         line.setColor(ink);
         line.setStrokeWidth(2.2f * u);
         // Sleigh: body, runner with its curl, Santa and the sack.
+        fill.setColor(0xFFD32F2F);                                  // the sleigh, red with a gold runner
         oval.set(4 * u, 12 * u, 64 * u, 28 * u);
         c.drawRoundRect(oval, 7 * u, 7 * u, fill);
+        line.setColor(0xFFFFC83D);
         c.drawLine(0, 32 * u, 70 * u, 32 * u, line);
         c.drawLine(70 * u, 32 * u, 78 * u, 24 * u, line);
         c.drawLine(18 * u, 28 * u, 18 * u, 32 * u, line);
         c.drawLine(52 * u, 28 * u, 52 * u, 32 * u, line);
+        fill.setColor(0xFF8D6E4A);
         c.drawCircle(14 * u, 8 * u, 10 * u, fill);                 // the sack
+        fill.setColor(0xFFE53935);
         oval.set(28 * u, 0, 48 * u, 18 * u);
-        c.drawOval(oval, fill);                                     // Santa
-        c.drawCircle(40 * u, -5 * u, 6 * u, fill);                  // his head
+        c.drawOval(oval, fill);                                     // Santa, in red
+        fill.setColor(0xFFFFE0C2);
+        c.drawCircle(40 * u, -5 * u, 6 * u, fill);                  // his face
+        fill.setColor(0xFFE53935);
+        c.drawCircle(40 * u, -10 * u, 5 * u, fill);                 // his hat, with its white bobble
+        fill.setColor(ink);
+        c.drawCircle(45 * u, -13 * u, 2.2f * u, fill);
+        c.drawCircle(40 * u, -1 * u, 4 * u, fill);                  // his beard
+        line.setColor(ink);
         line.setStrokeWidth(1.2f * u);
         c.drawLine(48 * u, 8 * u, 98 * u, 6 * u, line);             // the reins
         line.setStrokeWidth(2.2f * u);

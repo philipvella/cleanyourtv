@@ -32,6 +32,8 @@ public final class RadioService extends Service implements AudioManager.OnAudioF
     /** A live stream that drops is tried again this many times, this far apart. */
     private static final int RETRIES = 3;
     private static final long RETRY_MS = 3000;
+    /** A stream that has not started playing this long after it was asked for counts as failed. */
+    private static final long TUNE_MS = 20000;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private MediaPlayer player;
@@ -161,7 +163,13 @@ public final class RadioService extends Service implements AudioManager.OnAudioF
             mp.prepareAsync();
         } catch (Exception bad) {
             failed();
+            return;
         }
+        // Some players never answer a stream they cannot read: give up on it rather than tune in for ever.
+        int run = generation;
+        main.postDelayed(() -> {
+            if (run == generation && player == mp && !mp.isPlaying()) failed();
+        }, TUNE_MS);
     }
 
     /** The stream failed or dropped: try again a few times, then show the error and stop. */

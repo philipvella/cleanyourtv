@@ -54,6 +54,15 @@ final class Stations {
         return new Station(id, name, owner, url, Double.NaN, Double.NaN, Double.NaN);
     }
 
+    private static Station global(String id, String name, String stream) {
+        // The MP3 stream: the TV's own player finds no track in Global's AAC one (MediaTek boards, Android 9).
+        return other(id, name, "Global", "https://media-ssl.musicradio.com/" + stream + "MP3");
+    }
+
+    private static Station newsUk(String id, String name, String host, String stream) {
+        return other(id, name, "News UK", "https://" + host + ".live.stream.broadcasting.news/" + stream);
+    }
+
     private static Station otherLocal(String id, String name, String owner, String url, double lat, double lon, double reachKm) {
         return new Station(id, name, owner, url, lat, lon, reachKm);
     }
@@ -108,27 +117,53 @@ final class Stations {
             bbcLocal("bbc_radio_ulster", "BBC Radio Ulster", 54.60, -6.70, 95),
             bbcLocal("bbc_radio_foyle", "BBC Radio Foyle", 55.00, -7.30, 40),
             // Regional commercial stations.
-            otherLocal("heart_london", "Heart London", "Global", "https://media-ssl.musicradio.com/HeartLondon", 51.51, -0.13, 45),
-            otherLocal("heart_essex", "Heart Essex", "Global", "https://media-ssl.musicradio.com/HeartEssex", 51.80, 0.60, 45),
+            otherLocal("heart_london", "Heart London", "Global", "https://media-ssl.musicradio.com/HeartLondonMP3", 51.51, -0.13, 45),
+            otherLocal("heart_essex", "Heart Essex", "Global", "https://media-ssl.musicradio.com/HeartEssexMP3", 51.80, 0.60, 45),
+            otherLocal("capital_london", "Capital London", "Global", "https://media-ssl.musicradio.com/CapitalMP3", 51.51, -0.13, 45),
+            otherLocal("smooth_london", "Smooth London", "Global", "https://media-ssl.musicradio.com/SmoothLondonMP3", 51.51, -0.13, 45),
+            otherLocal("lbc_london", "LBC London", "Global", "https://media-ssl.musicradio.com/LBCLondonMP3", 51.51, -0.13, 45),
             // National.
             bbc("bbc_radio_one", "BBC Radio 1"),
             bbc("bbc_1xtra", "BBC Radio 1Xtra"),
+            bbc("bbc_radio_one_dance", "BBC Radio 1 Dance"),
+            bbc("bbc_radio_one_anthems", "BBC Radio 1 Anthems"),
             bbc("bbc_radio_two", "BBC Radio 2"),
             bbc("bbc_radio_three", "BBC Radio 3"),
+            bbc("bbc_radio_three_unwind", "BBC Radio 3 Unwind"),
             bbc("bbc_radio_fourfm", "BBC Radio 4"),
             bbc("bbc_radio_four_extra", "BBC Radio 4 Extra"),
             bbc("bbc_radio_five_live", "BBC Radio 5 Live"),
             bbc("bbc_6music", "BBC Radio 6 Music"),
             bbc("bbc_asian_network", "BBC Asian Network"),
             bbc("bbc_world_service", "BBC World Service"),
-            other("classic_fm", "Classic FM", "Global", "https://media-ssl.musicradio.com/ClassicFM"),
-            other("heart", "Heart", "Global", "https://media-ssl.musicradio.com/HeartUK"),
-            other("capital", "Capital", "Global", "https://media-ssl.musicradio.com/CapitalUK"),
-            other("smooth", "Smooth", "Global", "https://media-ssl.musicradio.com/SmoothUK"),
-            other("lbc", "LBC", "Global", "https://media-ssl.musicradio.com/LBCUK"),
-            other("radio_x", "Radio X", "Global", "https://media-ssl.musicradio.com/RadioXUK"),
-            other("virgin_radio", "Virgin Radio", "Virgin", "https://radio.virginradio.co.uk/stream"),
-            other("times_radio", "Times Radio", "Times", "https://timesradio.wireless.radio/stream"),
+            // Global's own free streams, as Global Player plays them.
+            global("classic_fm", "Classic FM", "ClassicFM"),
+            global("gold", "Gold", "Gold"),
+            global("heart", "Heart", "HeartUK"),
+            global("heart_70s", "Heart 70s", "Heart70s"),
+            global("heart_80s", "Heart 80s", "Heart80s"),
+            global("heart_90s", "Heart 90s", "Heart90s"),
+            global("heart_00s", "Heart 00s", "Heart00s"),
+            global("heart_dance", "Heart Dance", "HeartDance"),
+            global("heart_xmas", "Heart Xmas", "HeartXmas"),
+            global("capital", "Capital", "CapitalUK"),
+            global("capital_xtra", "Capital XTRA", "CapitalXTRANational"),
+            global("capital_xtra_reloaded", "Capital XTRA Reloaded", "CapitalXTRAReloaded"),
+            global("capital_dance", "Capital Dance", "CapitalDance"),
+            global("capital_chill", "Capital Chill", "CapitalChill"),
+            global("smooth", "Smooth", "SmoothUK"),
+            global("smooth_chill", "Smooth Chill", "SmoothChill"),
+            global("smooth_country", "Smooth Country", "SmoothCountry"),
+            global("smooth_70s", "Smooth 70s", "Smooth70s"),
+            global("lbc", "LBC", "LBCUK"),
+            global("lbc_news", "LBC News", "LBCNewsUK"),
+            global("radio_x", "Radio X", "RadioXUK"),
+            global("radio_x_classic_rock", "Radio X Classic Rock", "RadioXClassicRock"),
+            global("radio_x_chilled", "Radio X Chilled", "RadioXChilled"),
+            // News UK's own free MP3 streams. Virgin Radio is left out: it streams only AAC, which this TV's player
+            // cannot read.
+            newsUk("talksport", "talkSPORT", "talksport", "stream-mp3"),
+            newsUk("times_radio", "Times Radio", "times", "stream-mp3"),
     };
 
     /**

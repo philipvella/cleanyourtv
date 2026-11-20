@@ -52,9 +52,14 @@ final class Season {
      * name forces it; empty, "off" or unknown is NONE.
      */
     static Scene pick(String key, LocalDate day, Map<MonthDay, Scene> ownDates) {
+        return pick(key, day, ownDates, SeasonSchedule.DEFAULT);
+    }
+
+    /** As above, with "auto" following the household's schedule (Launcher settings' animation schedule). */
+    static Scene pick(String key, LocalDate day, Map<MonthDay, Scene> ownDates, SeasonSchedule schedule) {
         String k = key == null ? "" : key.trim().toLowerCase(Locale.ROOT);
         if (k.isEmpty()) return Scene.NONE;
-        if (AUTO.equals(k)) return at(day, ownDates);
+        if (AUTO.equals(k)) return schedule.at(day, ownDates);
         return named(k);
     }
 
@@ -84,26 +89,9 @@ final class Season {
         return at(day, Collections.emptyMap());
     }
 
-    /** The calendar: the household's own dates first, then the one-day holidays, then the seasons. */
+    /** The default calendar (SeasonSchedule.DEFAULT): the household's own dates first, then the one-day holidays, then the seasons. */
     static Scene at(LocalDate day, Map<MonthDay, Scene> ownDates) {
-        Scene own = ownDates.get(MonthDay.from(day));
-        if (own != null) return own;
-        int m = day.getMonthValue(), dom = day.getDayOfMonth();
-        if (m == 12 && dom == 31 || m == 1 && dom == 1) return Scene.NEW_YEAR;
-        if (m == 11 && dom == 5) return Scene.FIREWORKS;                                    // Bonfire Night
-        LocalDate easter = easter(day.getYear());
-        if (!day.isBefore(easter.minusDays(2)) && !day.isAfter(easter.plusDays(1))) return Scene.EASTER;  // Fri-Mon
-        if (day.equals(easter.minusDays(47))) return Scene.PANCAKE_DAY;                    // Shrove Tuesday
-        if (day.equals(easter.minusDays(21))) return Scene.MOTHERS_DAY;                    // Mothering Sunday
-        if (m == 3 && dom == 17) return Scene.ST_PATRICKS;
-        if (day.equals(fathersDay(day.getYear()))) return Scene.FATHERS_DAY;
-        if (m == 10 && dom >= 25) return Scene.HALLOWEEN;
-        if (m == 12 && dom <= 26) return Scene.CHRISTMAS;
-        if (m == 2 && dom >= 7 && dom <= 14) return Scene.VALENTINE;
-        if (m == 12 || m == 1 || m == 2) return Scene.WINTER;
-        if (m >= 3 && m <= 5) return Scene.SPRING;
-        if (m >= 6 && m <= 8) return Scene.SUMMER;
-        return Scene.AUTUMN;                                                                 // September to November
+        return SeasonSchedule.DEFAULT.at(day, ownDates);
     }
 
     /** Western Easter Sunday (the Anonymous Gregorian algorithm). */

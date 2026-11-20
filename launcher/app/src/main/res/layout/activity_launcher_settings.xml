@@ -100,6 +100,13 @@
             android:layout_marginTop="10dp"
             android:visibility="gone" />
 
+        <!-- The animation schedule (SeasonScheduleActivity): shown with seasonChoice. -->
+        <TextView
+            android:id="@+id/scheduleChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/animationsChoice"
             style="@style/SettingsRow"

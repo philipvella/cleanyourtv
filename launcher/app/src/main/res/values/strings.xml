@@ -82,6 +82,35 @@
         <item>Birthday</item>
         <item>Anniversary</item>
     </string-array>
+    <!-- Launcher settings: the animation schedule (SeasonScheduleActivity), seasonal_scenes "auto" as a Gantt chart. -->
+    <string name="schedule_label" translatable="false">Animation schedule</string>
+    <string name="schedule_state" translatable="false">Animation schedule: %1$s</string>
+    <string name="schedule_default" translatable="false">default</string>
+    <string name="schedule_custom" translatable="false">your own</string>
+    <string name="schedule_title" translatable="false">Animation schedule</string>
+    <string name="schedule_subtitle" translatable="false">Where two scenes overlap, the one higher in the list plays. Faint bars are days a higher row takes.</string>
+    <string name="schedule_subtitle_not_auto" translatable="false">Seasonal scenes is not on Auto, so Home ignores this schedule until it is.</string>
+    <string name="schedule_own" translatable="false">Your dates</string>
+    <string name="schedule_off_tag" translatable="false">OFF</string>
+    <string name="schedule_move" translatable="false">Change priority (move up or down)</string>
+    <string name="schedule_dates" translatable="false">Change dates</string>
+    <string name="schedule_turn_off" translatable="false">Turn off</string>
+    <string name="schedule_turn_on" translatable="false">Turn on</string>
+    <string name="schedule_reset_dates" translatable="false">Reset dates</string>
+    <string name="schedule_reset_all" translatable="false">Reset</string>
+    <string name="schedule_reset_all_message" translatable="false">Put every scene back to its usual dates and order?</string>
+    <string name="schedule_moves_easter" translatable="false">moves with Easter</string>
+    <string name="schedule_moves_fathers" translatable="false">moves with Father\'s Day</string>
+    <string name="schedule_edge_start" translatable="false">moving the start</string>
+    <string name="schedule_edge_end" translatable="false">moving the end</string>
+    <string name="schedule_edge_both" translatable="false">moving both</string>
+    <string name="schedule_details" translatable="false">%1$s  ·  %2$s  ·  plays %3$d of its %4$d days</string>
+    <string name="schedule_details_off" translatable="false">%1$s  ·  %2$s  ·  off, never plays</string>
+    <string name="schedule_details_editing" translatable="false">%1$s  ·  %2$s  ·  %3$s</string>
+    <string name="schedule_details_own" translatable="false">Your dates from the theme (seasonal_dates)  ·  %1$d days, %2$d play</string>
+    <string name="schedule_hint_browse" translatable="false">OK  edit · ‹ ›  year · Menu  reset all · Back  done</string>
+    <string name="schedule_hint_move" translatable="false">↑ ↓  move up or down the list · OK  done</string>
+    <string name="schedule_hint_dates" translatable="false">‹ ›  a day (hold for a week) · ↑ ↓  start, end or both · OK  done</string>
     <string name="animations_state">Animations: %1$s</string>
     <string name="advanced_effects">Advanced effects</string>
     <string name="advanced_effects_state">Advanced effects: %1$s</string>

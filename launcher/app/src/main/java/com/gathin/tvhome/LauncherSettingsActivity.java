@@ -35,6 +35,8 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView wallpaperChoice;
     /** seasonal_scenes: Auto, Off or one scene; null when the theme has no such key. */
     private TextView seasonChoice;
+    /** The animation schedule, shown with seasonChoice. */
+    private TextView scheduleChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -114,6 +116,9 @@ public final class LauncherSettingsActivity extends Activity {
             seasonChoice = findViewById(R.id.seasonChoice);
             seasonChoice.setVisibility(View.VISIBLE);
             seasonChoice.setOnClickListener(v -> showSeasonPicker());
+            scheduleChoice = findViewById(R.id.scheduleChoice);
+            scheduleChoice.setVisibility(View.VISIBLE);
+            scheduleChoice.setOnClickListener(v -> open(new Intent(this, SeasonScheduleActivity.class)));
         }
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
@@ -147,7 +152,8 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).remove(Config.SEASON_CHOICE_KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).remove(Config.SEASON_CHOICE_KEY)
+                    .remove(SeasonSchedule.KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -166,6 +172,13 @@ public final class LauncherSettingsActivity extends Activity {
         refresh();
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    /** Back from the animation schedule: its row and today's Auto scene may have changed. */
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        refresh();
     }
 
     private void reverseRow(TextView[] views) {
@@ -282,7 +295,8 @@ public final class LauncherSettingsActivity extends Activity {
     /** "Auto (today: Halloween)": what Auto plays today, the household's own dates (seasonal_dates) included. */
     private String autoLabel() {
         Config config = Config.load(this);
-        Season.Scene today = Season.at(java.time.LocalDate.now(), Season.parseDates(config.seasonalDates));
+        Season.Scene today = SeasonSchedule.parse(choices.getString(SeasonSchedule.KEY, null))
+                .at(java.time.LocalDate.now(), Season.parseDates(config.seasonalDates));
         return getString(R.string.season_auto, sceneName(today));
     }
 
@@ -400,6 +414,8 @@ public final class LauncherSettingsActivity extends Activity {
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
         if (seasonChoice != null) seasonChoice.setText(getString(R.string.season_state, seasonLabel()));
+        if (scheduleChoice != null) scheduleChoice.setText(getString(R.string.schedule_state,
+                getString(choices.contains(SeasonSchedule.KEY) ? R.string.schedule_custom : R.string.schedule_default)));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
@@ -407,7 +423,8 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(OpenOnStart.KEY) || choices.contains(Config.SEASON_CHOICE_KEY);
+                || choices.contains(OpenOnStart.KEY) || choices.contains(Config.SEASON_CHOICE_KEY)
+                || choices.contains(SeasonSchedule.KEY);
     }
 
     private void open(Intent intent) {

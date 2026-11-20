@@ -202,6 +202,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String seasonalScenes = "";
     /** seasonal_dates: the household's own days, which win over the calendar. */
     private java.util.Map<java.time.MonthDay, Season.Scene> seasonalDates = java.util.Collections.emptyMap();
+    /** The animation schedule set in Launcher settings: which scene plays when, and which wins an overlap. */
+    private SeasonSchedule seasonSchedule = SeasonSchedule.DEFAULT;
     /** ui_font "inter": every text inflated on Home is given the system sans-serif (onCreateView); null keeps Outfit. */
     private HomeFont homeFont;
     /** pill_labels_only: the Wi-Fi pill never gets its icon back. */
@@ -429,7 +431,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             sky.update();
             wallpaperPlayer.update();
             // seasonal_scenes: Home left on screen past midnight moves on to the new day's scene by itself.
-            if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now(), seasonalDates));
+            if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now(), seasonalDates, seasonSchedule));
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -517,6 +519,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // seasonal_scenes: above the wallpaper, sky and glow, under the text and tiles. Not made at all when off.
         seasonalScenes = cfg.seasonalScenes;
         seasonalDates = Season.parseDates(cfg.seasonalDates);
+        seasonSchedule = SeasonSchedule.parse(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getString(SeasonSchedule.KEY, null));
         if (!seasonalScenes.isEmpty() && cfg.animations && !cfg.reducedMotion) {
             seasonView = new SeasonView(this);
             root.addView(seasonView, root.indexOfChild(ambient) + 1, new FrameLayout.LayoutParams(
@@ -1099,7 +1103,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.start();
         if (welcome != null) welcome.start();
         // The scene is picked again each time Home comes back, so it changes over on its own as the dates pass.
-        if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now(), seasonalDates));
+        if (seasonView != null) seasonView.start(Season.pick(seasonalScenes, LocalDate.now(), seasonalDates, seasonSchedule));
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);

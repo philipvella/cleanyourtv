@@ -6,7 +6,7 @@
     <string name="place" translatable="false">St Albans</string>
     <string name="latitude" translatable="false">51.755</string>
     <string name="longitude" translatable="false">-0.336</string>
-    <string name="default_station" translatable="false"></string>
+    <string name="default_station" translatable="false">gold</string>
     <string name="app_name" translatable="false">Vella radio</string>
     <string name="stations_title" translatable="false">Radio</string>
 </resources>

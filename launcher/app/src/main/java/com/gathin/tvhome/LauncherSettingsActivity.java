@@ -27,6 +27,9 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
+    /** settings_one_click: what Home should do once these settings close (Edit dock or Module cards). */
+    static final String EXTRA_ACTION = "com.gathin.tvhome.extra.ACTION_FROM_SETTINGS";
+    static final String ACTION_DOCK_EDIT = "dock_edit", ACTION_MODULE_CARDS = "module_cards";
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
     private final TextView[] rowChoices = new TextView[4];
@@ -54,11 +57,12 @@ public final class LauncherSettingsActivity extends Activity {
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
         View reorderChoice = findViewById(R.id.reorderChoice);
-        reorderChoice.setVisibility(config.launcherSettingsButton ? View.VISIBLE : View.GONE);
+        reorderChoice.setVisibility(config.launcherSettingsButton || config.settingsOneClick ? View.VISIBLE : View.GONE);
         reorderChoice.setOnClickListener(v -> {
             setResult(RESULT_OK, new Intent().putExtra(EXTRA_REORDER, true));
             finish();
         });
+        if (config.settingsOneClick) oneClickRows(config);
         columns = config.columns;
         rowsBelowDock = config.rowsBelowDock;
         dockOpacity = config.dockOpacity;
@@ -170,8 +174,39 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
-        if (config.launcherSettingsButton) reorderChoice.requestFocus();
+        if (config.launcherSettingsButton || config.settingsOneClick) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    /**
+     * settings_one_click: the rows holding the Settings pill used to offer. Edit dock and Module cards are Home's
+     * own, so they close these settings and Home runs them; the vendor's settings and the power menu open from here.
+     */
+    private void oneClickRows(Config config) {
+        if (config.dockRow) action(R.id.dockEditChoice, ACTION_DOCK_EDIT);
+        if (config.moduleCards) action(R.id.moduleCardsChoice, ACTION_MODULE_CARDS);
+        if (SystemSettings.vendorIntent(this) != null) {
+            View vendor = findViewById(R.id.nativeSettingsChoice);
+            vendor.setVisibility(View.VISIBLE);
+            vendor.setOnClickListener(v -> {
+                Intent i = SystemSettings.vendorIntent(this);
+                if (i != null) open(i);
+            });
+        }
+        if (HomeKeyService.canOpenPowerMenu()) {
+            View power = findViewById(R.id.powerMenuChoice);
+            power.setVisibility(View.VISIBLE);
+            power.setOnClickListener(v -> HomeKeyService.openPowerMenu());
+        }
+    }
+
+    private void action(int id, String action) {
+        View row = findViewById(id);
+        row.setVisibility(View.VISIBLE);
+        row.setOnClickListener(v -> {
+            setResult(RESULT_OK, new Intent().putExtra(EXTRA_ACTION, action));
+            finish();
+        });
     }
 
     /** Back from the animation schedule: its row and today's Auto scene may have changed. */

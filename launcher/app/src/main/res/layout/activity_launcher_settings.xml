@@ -28,6 +28,21 @@
             android:text="@string/reorder"
             android:visibility="gone" />
 
+        <!-- settings_one_click: what holding the Settings pill offers, as plain rows. -->
+        <TextView
+            android:id="@+id/dockEditChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/dock_edit"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/moduleCardsChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/module_cards"
+            android:visibility="gone" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -164,5 +179,19 @@
             style="@style/SettingsRow"
             android:layout_marginTop="18dp"
             android:text="@string/tv_settings" />
+
+        <TextView
+            android:id="@+id/nativeSettingsChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/native_settings"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/powerMenuChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/power_menu"
+            android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

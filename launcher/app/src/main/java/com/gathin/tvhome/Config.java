@@ -174,6 +174,8 @@ final class Config {
     final boolean clockMono;
     /** radio_source: the package of a radio add-on (RadioLine); empty = off. */
     final String radioSource;
+    /** settings_one_click: the Settings pill opens Launcher settings, which holds what holding it used to; no long press. */
+    final boolean settingsOneClick;
     /** weather_place: the place's name under the weather (on by default); weather_mono: the weather all in white. */
     final boolean weatherPlace, weatherMono;
     /** mono_tiles: app tiles in greyscale, in colour only while focused. */
@@ -337,7 +339,7 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar, String publicHolidays, boolean clockMono, String radioSource) {
+                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar, String publicHolidays, boolean clockMono, String radioSource, boolean settingsOneClick) {
         this.publicHolidays = publicHolidays;
         this.clockCalendar = clockCalendar;
         this.dockLift = dockLift;
@@ -350,6 +352,7 @@ final class Config {
         this.clockGauge = clockGauge;
         this.clockMono = clockMono;
         this.radioSource = radioSource;
+        this.settingsOneClick = settingsOneClick;
         this.nextSunTime = nextSunTime;
         this.seasonalDates = Collections.unmodifiableList(seasonalDates);
         this.latitude = latitude;
@@ -566,6 +569,7 @@ final class Config {
         boolean clockGauge = res.getBoolean(R.bool.clock_gauge);
         boolean clockMono = res.getBoolean(R.bool.clock_mono);
         String radioSource = res.getString(R.string.radio_source).trim();
+        boolean settingsOneClick = res.getBoolean(R.bool.settings_one_click);
         boolean weatherPlace = res.getBoolean(R.bool.weather_place), weatherMono = res.getBoolean(R.bool.weather_mono);
         boolean monoTiles = res.getBoolean(R.bool.mono_tiles);
         boolean glassTiles = res.getBoolean(R.bool.glass_tiles);
@@ -705,6 +709,7 @@ final class Config {
             clockGauge = bool(json, "clock_gauge", clockGauge);
             clockMono = bool(json, "clock_mono", clockMono);
             radioSource = string(json, "radio_source", radioSource);
+            settingsOneClick = bool(json, "settings_one_click", settingsOneClick);
             weatherPlace = bool(json, "weather_place", weatherPlace);
             weatherMono = bool(json, "weather_mono", weatherMono);
             monoTiles = bool(json, "mono_tiles", monoTiles);
@@ -831,7 +836,7 @@ final class Config {
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
                 pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
                 latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono, monoTiles, glassTiles, Math.max(0, Math.min(120, contentLift)),
-                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar, publicHolidays, clockMono, radioSource);
+                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar, publicHolidays, clockMono, radioSource, settingsOneClick);
     }
 
     /**

@@ -283,6 +283,10 @@
     <!-- A direct Launcher settings action instead of TV Settings in the header (or top_menu).
          Off by default; a theme can set "launcher_settings_button": true. -->
     <bool name="launcher_settings_button">false</bool>
+    <!-- One press on the Settings pill opens Launcher settings, which then also holds what holding the pill offers
+         (edit dock, module cards, reorder, the vendor's settings, the power menu); holding the pill does nothing
+         more. Off by default; a theme can set "settings_one_click": true. -->
+    <bool name="settings_one_click">false</bool>
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->

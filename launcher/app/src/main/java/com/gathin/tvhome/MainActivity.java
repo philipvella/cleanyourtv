@@ -823,8 +823,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ((TextView) btnSettings).setText(R.string.launcher_settings);
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_home_settings_pill, 0, 0, 0);
         }
+        settingsOneClick = cfg.settingsOneClick;
         btnSettings.setOnClickListener(v -> {
-            if (launcherSettingsButton) startActivityForResult(
+            if (launcherSettingsButton || settingsOneClick) startActivityForResult(
                     new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
             else open(systemIntent(Settings.ACTION_SETTINGS));
         });
@@ -882,7 +883,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             vpnPlainInk = btnVpn.getCompoundDrawableTintList();
             makeIconOnly(btnVpn);
         }
-        btnSettings.setOnLongClickListener(v -> {
+        // settings_one_click: everything the hold offered is in Launcher settings, so a hold is just a press.
+        if (settingsOneClick) btnSettings.setOnLongClickListener(null);
+        else btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
         });
@@ -1129,6 +1132,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        String action = data == null ? null : data.getStringExtra(LauncherSettingsActivity.EXTRA_ACTION);
+        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK && action != null) {
+            // settings_one_click: Edit dock or Module cards from Launcher settings, run once Home is rebuilt.
+            getIntent().putExtra(LauncherSettingsActivity.EXTRA_ACTION, action);
+            settingsRecreationPending = true;
+            settingsRevision = settingsRevision();
+            recreate();
+            return;
+        }
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
             getIntent().putExtra(LauncherSettingsActivity.EXTRA_REORDER, true);
@@ -1140,8 +1152,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void startPendingSettingsReorder() {
-        if (settingsRecreationPending || !tilesReady || !hasWindowFocus() || isFinishing()
-                || !getIntent().getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) return;
+        if (settingsRecreationPending || !tilesReady || !hasWindowFocus() || isFinishing()) return;
+        String action = getIntent().getStringExtra(LauncherSettingsActivity.EXTRA_ACTION);
+        if (action != null) {
+            getIntent().removeExtra(LauncherSettingsActivity.EXTRA_ACTION);
+            if (LauncherSettingsActivity.ACTION_DOCK_EDIT.equals(action) && dockRow) startDockEdit();
+            else if (LauncherSettingsActivity.ACTION_MODULE_CARDS.equals(action) && moduleCards) showModuleCards();
+            return;
+        }
+        if (!getIntent().getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) return;
         getIntent().removeExtra(LauncherSettingsActivity.EXTRA_REORDER);
         toggleReorder();
     }
@@ -2949,6 +2968,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** show_inputs_pill as configured: top_menu clears showInputsPill, so its Inputs row reads this. */
     private boolean showInputsMenuRow = true;
     private boolean launcherSettingsButton;
+    /** settings_one_click: the pill always opens Launcher settings, and holding it adds nothing. */
+    private boolean settingsOneClick;
     /** icon_only_buttons without wifi_label_width: the Wi-Fi pill shows no network name. */
     private boolean wifiIconOnly;
     /** config.xml wifi_status_color: the Wi-Fi icon's green while online and its usual pill colours; null while off. */
@@ -3569,12 +3590,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             status.setVisibility(View.VISIBLE);
         }
         addInputRow(rows, popup, R.drawable.ic_swap_vert, getString(R.string.reorder), -1, this::toggleReorder);
-        if (launcherSettingsButton) {
+        // settings_one_click: holding the gear does nothing more, so what the hold offered is here.
+        if (settingsOneClick) {
+            if (dockRow) addInputRow(rows, popup, R.drawable.ic_apps, getString(R.string.dock_edit), -1, this::startDockEdit);
+            if (moduleCards) addInputRow(rows, popup, R.drawable.ic_picture, getString(R.string.module_cards), -1,
+                    this::showModuleCards);
+        }
+        if (launcherSettingsButton || settingsOneClick) {
             addInputRow(rows, popup, R.drawable.ic_home_settings_pill, getString(R.string.launcher_settings), -1,
                     () -> startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         } else {
             addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
                     () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        }
+        if (settingsOneClick) {
+            if (SystemSettings.vendorIntent(this) != null) {
+                addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.native_settings), -1, () -> {
+                    Intent vendor = SystemSettings.vendorIntent(this);
+                    if (vendor != null) open(vendor);
+                });
+            }
+            if (HomeKeyService.canOpenPowerMenu()) {
+                addInputRow(rows, popup, R.drawable.ic_power, getString(R.string.power_menu), -1, HomeKeyService::openPowerMenu);
+            }
         }
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (220 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));

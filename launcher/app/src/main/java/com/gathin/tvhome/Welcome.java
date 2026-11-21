@@ -108,6 +108,22 @@ final class Welcome {
     private TextView radioName, radioState;
     private View radioFrame;
     private String radioNow = "", radioOwner = "";
+    /** The mark before the station, one for the block's life; it moves while the radio plays or tunes in. */
+    private RadioGlyph radioGlyph;
+    /** Whether the glyph may move (animations on, reduced motion off), and whether Home is on screen to see it. */
+    private boolean radioMotion, radioShown;
+    /** About 12 frames a second: enough for a level meter, and little work for the TV. */
+    private static final long RADIO_FRAME_MS = 80;
+    private final Runnable radioTick = new Runnable() {
+        @Override
+        public void run() {
+            if (radioGlyph == null || main == null) return;
+            radioGlyph.setTime(android.os.SystemClock.uptimeMillis());
+            // The block is drawn through its own bitmap (PlainTextFrame), which redraws only when it is invalidated.
+            if (radioFrame != null) radioFrame.invalidate();
+            if (radioShown && radioMotion && radioGlyph.moving()) main.postDelayed(this, RADIO_FRAME_MS);
+        }
+    };
     /** The radio's lines, as a share of the date's size. */
     private static final float RADIO_SCALE = 0.8f;
     /** weather_source: the add-on's forecast screen; null when it has none, and the weather is then not focusable. */
@@ -182,6 +198,8 @@ final class Welcome {
         }
         if (!cfg.radioSource.isEmpty() && cfg.headerBottom) {
             w.radio = RadioLine.create(activity, cfg.radioSource, main, w::showRadio);
+            if (w.main == null) w.main = main;
+            w.radioMotion = cfg.animations && !cfg.reducedMotion;
             if (w.radio != null) w.addRadio(root, root.indexOfChild(content));
         }
         // Each block drawn through a plain canvas, so High contrast text does not stroke it (PlainTextFrame).
@@ -918,11 +936,15 @@ final class Welcome {
         radioOwner = owner;
         Locale here = Locale.getDefault();
         radioName.setText(station.toUpperCase(here));
-        int size = Math.round(11 * density);
-        RadioGlyph glyph = new RadioGlyph(RadioGlyph.kind(state));
-        glyph.setBounds(0, 0, size, size);
-        radioName.setCompoundDrawables(glyph, null, null, null);
-        radioName.setCompoundDrawablePadding(Math.round(8 * density));
+        if (radioGlyph == null) {
+            int size = Math.round(11 * density);
+            radioGlyph = new RadioGlyph(RadioGlyph.OFF);
+            radioGlyph.setBounds(0, 0, size, size);
+            radioName.setCompoundDrawables(radioGlyph, null, null, null);
+            radioName.setCompoundDrawablePadding(Math.round(8 * density));
+        }
+        radioGlyph.setKind(RadioGlyph.kind(state));
+        animateRadio();
         radioState.setText(radioStateText(state, radioBlock.isFocused()).toUpperCase(here));
         radioBlock.setVisibility(station.isEmpty() ? View.GONE : View.VISIBLE);
         radioBlock.setContentDescription(station + ", " + radioStateText(state, false));
@@ -960,16 +982,47 @@ final class Welcome {
         }, stations, focused -> radioState.setText(radioStateText(radioNow, focused).toUpperCase(Locale.getDefault())));
     }
 
-    /** The radio's mark before the station: bars while it plays, dots while it tunes in, a play triangle when off. */
+    /** Starts the glyph's frames when it should move; they stop by themselves when it should not. */
+    private void animateRadio() {
+        if (main == null || radioGlyph == null) return;
+        main.removeCallbacks(radioTick);
+        if (radioShown && radioMotion && radioGlyph.moving()) main.post(radioTick);
+        else {
+            radioGlyph.setTime(0);
+            if (radioFrame != null) radioFrame.invalidate();
+        }
+    }
+
+    /**
+     * The radio's mark before the station: bars that bounce like a level meter while it plays, dots that pulse in turn
+     * while it tunes in, a play triangle when off. Still when motion is off (time 0).
+     */
     static final class RadioGlyph extends android.graphics.drawable.Drawable {
         static final int OFF = 0, PLAYING = 1, TUNING = 2;
-        private final int kind;
+        private int kind;
+        /** Milliseconds, from uptime; 0 draws the still picture. */
+        private long time;
         private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Path path = new android.graphics.Path();
 
         RadioGlyph(int kind) {
             this.kind = kind;
             paint.setColor(0xFFFFFFFF);
+        }
+
+        void setKind(int k) {
+            if (k == kind) return;
+            kind = k;
+            invalidateSelf();
+        }
+
+        void setTime(long ms) {
+            time = ms;
+            invalidateSelf();
+        }
+
+        boolean moving() {
+            return kind != OFF;
         }
 
         static int kind(String state) {
@@ -980,17 +1033,25 @@ final class Welcome {
         public void draw(@NonNull android.graphics.Canvas c) {
             android.graphics.Rect b = getBounds();
             float w = b.width(), h = b.height(), x = b.left, y = b.top;
+            float t = time / 1000f;
+            int alpha = paint.getAlpha();
             if (kind == PLAYING) {
-                // Three bars of a level meter.
+                // Three bars of a level meter, each on two waves of its own so they never fall into step.
                 float bar = w / 5f;
-                float[] tall = {0.55f, 1f, 0.75f};
                 for (int i = 0; i < 3; i++) {
+                    float tall = time == 0 ? STILL[i] : barHeight(t, i);
                     float left = x + i * 2 * bar;
-                    c.drawRoundRect(left, y + h * (1 - tall[i]), left + bar, y + h, bar / 2, bar / 2, paint);
+                    c.drawRoundRect(left, y + h * (1 - tall), left + bar, y + h, bar / 2, bar / 2, paint);
                 }
             } else if (kind == TUNING) {
+                // Three dots, lit in turn from left to right.
                 float r = w / 9f;
-                for (int i = 0; i < 3; i++) c.drawCircle(x + r + i * (w - 2 * r) / 2f, y + h / 2f, r, paint);
+                for (int i = 0; i < 3; i++) {
+                    float lit = time == 0 ? 1f : 0.5f + 0.5f * (float) Math.sin(t * 6f - i * 1.2f);
+                    paint.setAlpha(Math.round(alpha * (0.3f + 0.7f * lit)));
+                    c.drawCircle(x + r + i * (w - 2 * r) / 2f, y + h / 2f, r * (0.8f + 0.25f * lit), paint);
+                }
+                paint.setAlpha(alpha);
             } else {
                 path.reset();
                 path.moveTo(x + w * 0.15f, y);
@@ -999,6 +1060,16 @@ final class Welcome {
                 path.close();
                 c.drawPath(path, paint);
             }
+        }
+
+        private static final float[] STILL = {0.55f, 1f, 0.75f};
+        private static final float[] SPEED = {7.1f, 9.3f, 5.7f}, SPEED2 = {3.3f, 4.1f, 2.6f};
+
+        /** A bar's height, a share of the glyph's: between about a quarter and the full height. */
+        static float barHeight(float t, int i) {
+            float a = (float) Math.abs(Math.sin(t * SPEED[i] + i * 1.7f));
+            float b = (float) Math.abs(Math.sin(t * SPEED2[i] + i * 0.9f));
+            return 0.25f + 0.75f * (0.6f * a + 0.4f * b);
         }
 
         @Override
@@ -1188,12 +1259,16 @@ final class Welcome {
     void start() {
         if (weather != null) weather.start();
         if (radio != null) radio.start();
+        radioShown = true;
+        animateRadio();
         if (sunLine != null || clockGauge != null) sunTick();
     }
 
     void stop() {
         if (weather != null) weather.stop();
         if (radio != null) radio.stop();
+        radioShown = false;
+        if (main != null) main.removeCallbacks(radioTick);
         if (main != null) main.removeCallbacks(sunTick);
     }
 
@@ -1205,6 +1280,8 @@ final class Welcome {
     void shutdown() {
         if (weather != null) weather.shutdown();
         if (radio != null) radio.shutdown();
+        radioShown = false;
+        if (main != null) main.removeCallbacks(radioTick);
         if (main != null) main.removeCallbacks(sunTick);
     }
 }

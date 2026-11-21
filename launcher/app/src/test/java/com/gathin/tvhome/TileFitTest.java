@@ -69,4 +69,19 @@ public class TileFitTest {
         assertTrue(AppAdapter.tileWidthPx(INNER, GRID_H, 4, 1, false, true, D)
                 > AppAdapter.tileWidthPx(INNER, GRID_H, 4, 1, true, true, D));
     }
+
+    @Test
+    public void tileScaleShrinksTheTilesAndKeepsTheirGapsInProportion() {
+        int full = AppAdapter.tileWidthPx(1900, 846, 7, 0, false, true, D);
+        int small = AppAdapter.tileWidthPx(1900, 846, 7, 0, false, true, D, 80);
+        assertEquals(Math.round(full * 0.8f), small);
+        assertEquals(full, AppAdapter.tileWidthPx(1900, 846, 7, 0, false, true, D, 100));
+        // The gap between two scaled tiles is what a full-size one has: the zoom room plus 12dp.
+        int cell = AppAdapter.cellWidthPx(small, D);
+        assertEquals(Math.round(small * AppAdapter.FOCUS_SCALE + 12 * D), cell);
+        // The row of cells is centred: the padding on each side takes the rest of the width.
+        int side = AppAdapter.sidePaddingPx(1920, 7, small, D, 80);
+        assertTrue(Math.abs(1920 - 2 * side - 7 * cell) <= 1);
+        assertEquals(Math.round(AppAdapter.GRID_SIDE_PAD_DP * D), AppAdapter.sidePaddingPx(1920, 7, full, D, 100));
+    }
 }

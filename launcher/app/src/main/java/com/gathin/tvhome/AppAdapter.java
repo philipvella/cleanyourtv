@@ -154,6 +154,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      * or title to make room for: the first row plus rows_below_dock rows fit under a small top margin.
      */
     static int tileWidthPx(int innerWidthPx, int gridHeightPx, int columns, int rowsBelowDock, boolean dockTitle,
+                           boolean dockRow, float density, int scalePercent) {
+        int w = tileWidthPx(innerWidthPx, gridHeightPx, columns, rowsBelowDock, dockTitle, dockRow, density);
+        return scalePercent >= 100 ? w : Math.round(w * Math.max(50, scalePercent) / 100f);
+    }
+
+    static int tileWidthPx(int innerWidthPx, int gridHeightPx, int columns, int rowsBelowDock, boolean dockTitle,
                            boolean dockRow, float density) {
         int w = tileWidthPx(innerWidthPx, columns, density);
         if (gridHeightPx <= 0 || rowsBelowDock <= 0) return w;
@@ -168,12 +174,34 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return Math.max(Math.max(Math.round(80 * density), Math.round(w * MIN_HEIGHT_FIT)), Math.min(w, byHeight));
     }
 
+    /** activity_main.xml's side padding on the grid, which tile_scale widens to centre a narrower row. */
+    static final float GRID_SIDE_PAD_DP = 10;
+
+    /**
+     * tile_scale below 100: the cell a scaled tile sits in. The gap between two tiles stays what a full-size tile
+     * has (room for the focus zoom plus 12dp), so smaller tiles sit closer together instead of drifting apart in
+     * columns sized for big ones.
+     */
+    static int cellWidthPx(int tileWidthPx, float density) {
+        return Math.round(tileWidthPx * FOCUS_SCALE + 12 * density);
+    }
+
+    /** The grid's side padding: the base, plus what centres the columns of scaled cells in the grid's width. */
+    static int sidePaddingPx(int gridWidthPx, int columns, int tileWidthPx, float density, int scalePercent) {
+        int base = Math.round(GRID_SIDE_PAD_DP * density);
+        if (scalePercent >= 100 || columns <= 0 || gridWidthPx <= 0) return base;
+        int extra = (gridWidthPx - 2 * base - columns * cellWidthPx(tileWidthPx, density)) / 2;
+        return base + Math.max(0, extra);
+    }
+
     /** The smallest share of the width-only tile size that fitting rows_below_dock into the height may go to. */
     static final float MIN_HEIGHT_FIT = 0.85f;
 
     private final Context ctx;
     private final int rowsBelowDock;
     private final boolean dockTitle;
+    /** tile_scale: the tiles' size as a percent of what fits. */
+    private final int tileScale;
     /** The owner's saved order (reorder button, Order): key -> rank. Empty when there is none or it no longer applies. */
     private Map<String, Integer> savedRanks = Collections.emptyMap();
     /** Dock size recorded with the saved order (Order.docked), or -1: then dock_apps says which tiles are docked. */
@@ -242,6 +270,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.focusOvershoot = cfg.focusOvershoot;
         this.rowsBelowDock = cfg.rowsBelowDock;
         this.dockTitle = cfg.dockTitle;
+        this.tileScale = cfg.tileScale;
         this.dockRow = cfg.dockRow;
         this.singleRow = cfg.singleRow;
         this.restNameAlpha = cfg.alwaysShowNames ? 0.75f : 0f;
@@ -420,8 +449,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
-        int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
-        int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w);
+        // tile_scale widens the grid's padding to centre the row, so size the tiles from the base padding.
+        int inner = tileScale < 100 ? width - 2 * Math.round(GRID_SIDE_PAD_DP * density)
+                : width - parent.getPaddingLeft() - parent.getPaddingRight();
+        int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density, tileScale),
+                h = tileHeightPx(w);
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
@@ -439,7 +471,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         name.setLayoutParams(nameLp);
         // A sideways row would stretch a match_parent item across the whole screen: give it a grid column's width.
-        if (singleRow) v.getLayoutParams().width = inner / dockSize;
+        if (singleRow) v.getLayoutParams().width = tileScale < 100 ? cellWidthPx(w, density) : inner / dockSize;
         if (uniformTiles) {
             // tvOS-style tile: a large centred mark, no caption inside the card.
             View icon = v.findViewById(R.id.icon);

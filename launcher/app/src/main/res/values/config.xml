@@ -287,6 +287,10 @@
          (edit dock, module cards, reorder, the vendor's settings, the power menu); holding the pill does nothing
          more. Off by default; a theme can set "settings_one_click": true. -->
     <bool name="settings_one_click">false</bool>
+    <!-- The app tiles' size, as a percent of the size that fits the columns (50 to 100): 80 makes every tile a fifth
+         smaller, with more room between them. 100 (the default) keeps them as they are. A theme can set
+         "tile_scale". -->
+    <integer name="tile_scale">100</integer>
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->

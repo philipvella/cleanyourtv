@@ -32,6 +32,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final boolean bandVisible;
     /** single_row: the tiles after the dock share its row, so they take the same offsets to stay level with it. */
     private final boolean singleRow;
+    /** tile_scale on a single row: the row is clipped to the grid's padding, so the band stops there too. */
+    private boolean clampToPadding;
     /** dock_band_all: in a single row, the band runs behind every app instead of the dock apps only. */
     private final boolean bandAll;
 
@@ -59,6 +61,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(lightGlass ? 0x38FFFFFF : translucent ? 0x26FFFFFF : 0x1FFFFFFF);
+    }
+
+    void setClampToPadding(boolean clamp) {
+        clampToPadding = clamp;
     }
 
     /** Concentric corners: the band's radius is the tiles' radius plus the band's padding around them. */
@@ -94,6 +100,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
             if (pos < 0 || (!bandAll && pos >= dockSize)) continue;
+            // tile_scale: only the tiles inside the centred row count; the rest are clipped away (MainActivity).
+            if (clampToPadding) {
+                float mid = child.getLeft() + child.getWidth() / 2f;
+                if (mid < parent.getPaddingLeft() || mid > parent.getWidth() - parent.getPaddingRight()) continue;
+            }
             RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
             View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
             if (card == null) continue;
@@ -111,6 +122,21 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         }
         if (!any) return;
         float pad = 14 * density;
+        if (clampToPadding) {
+            // The same 14dp all round the centred row, with corners concentric with the tiles'.
+            rect.inset(-pad, -pad);
+            rect.bottom += namesRoom;
+            float r = radiusPx(AppAdapter.cornerRadius(cardWidth, density), pad);
+            if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
+                band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,
+                        Shader.TileMode.CLAMP));
+                shaderTop = rect.top;
+                shaderBottom = rect.bottom;
+            }
+            c.drawRoundRect(rect, r, r, band);
+            c.drawRoundRect(rect, r, r, edge);
+            return;
+        }
         // The band can only draw inside the grid, and the first and last dock tiles sit 12dp in from its
         // edges: a full 14dp at the sides sliced the rounded ends flat (#454). Keep the sides, with the
         // 1dp edge line, inside the grid; the top and bottom have room.

@@ -138,6 +138,7 @@ final class Stations {
             bbc("bbc_world_service", "BBC World Service"),
             // Global's own free streams, as Global Player plays them.
             global("classic_fm", "Classic FM", "ClassicFM"),
+            global("classic_fm_calm", "Classic FM Calm", "ClassicFMCalm"),
             global("gold", "Gold", "Gold"),
             global("heart", "Heart", "HeartUK"),
             global("heart_70s", "Heart 70s", "Heart70s"),

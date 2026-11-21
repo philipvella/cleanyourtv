@@ -918,12 +918,13 @@ final class Welcome {
         radioState.setTextSize(TypedValue.COMPLEX_UNIT_PX, radioState.getTextSize() * RADIO_SCALE);
         radioName.setTextColor(0xFFFFFFFF);
         radioState.setTextColor(0xB3FFFFFF);
-        radioBlock.addView(radioName, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        // What is on (the broadcaster and Live) first, then the station with its moving bars under it.
+        radioBlock.addView(radioState, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        slp.topMargin = Math.round(6 * density);
-        radioBlock.addView(radioState, slp);
+        nlp.topMargin = Math.round(6 * density);
+        radioBlock.addView(radioName, nlp);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         lp.bottomMargin = Math.round(BOTTOM_MARGIN_DP * density);

@@ -685,6 +685,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // the focus zoom inside them.
             boolean clip = singleRow && cfg.tileScale < 100;
             band.setClampToPadding(clip);
+            band.setMatchTileRadius(cfg.dockRadiusMatch);
+            if (cfg.liquidGlass) band.setLiquid(true);
             grid.addItemDecoration(band);
         }
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);

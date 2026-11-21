@@ -178,6 +178,10 @@ final class Config {
     final boolean settingsOneClick;
     /** tile_scale: the app tiles' size as a percent of what fits (50 to 100); 100 = as before. */
     final int tileScale;
+    /** dock_radius_match: the dock band's corners take the app tiles' radius instead of a rounder one of their own. */
+    final boolean dockRadiusMatch;
+    /** liquid_glass: the dock band and glass tiles follow Liquid Glass (DockDecoration.drawLiquid, LiquidGlass). */
+    final boolean liquidGlass;
     /** weather_place: the place's name under the weather (on by default); weather_mono: the weather all in white. */
     final boolean weatherPlace, weatherMono;
     /** mono_tiles: app tiles in greyscale, in colour only while focused. */
@@ -341,7 +345,7 @@ final class Config {
                    int openOnStartNetworkWait, boolean iconOnlyVpn, String heroText, String heroCaption,
                    boolean headerBottom, boolean pillLabelsOnly, String weatherSource, String uiFont,
                    String captionPosition, boolean smallPills, String heroFont, String seasonalScenes,
-                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar, String publicHolidays, boolean clockMono, String radioSource, boolean settingsOneClick, int tileScale) {
+                   List<String> seasonalDates, String latitude, String longitude, boolean nextSunTime, boolean clockGauge, boolean weatherPlace, boolean weatherMono, boolean monoTiles, boolean glassTiles, int contentLift, int heroLineHeight, int dockLift, boolean clockCalendar, String publicHolidays, boolean clockMono, String radioSource, boolean settingsOneClick, int tileScale, boolean dockRadiusMatch, boolean liquidGlass) {
         this.publicHolidays = publicHolidays;
         this.clockCalendar = clockCalendar;
         this.dockLift = dockLift;
@@ -356,6 +360,8 @@ final class Config {
         this.radioSource = radioSource;
         this.settingsOneClick = settingsOneClick;
         this.tileScale = Math.max(50, Math.min(100, tileScale));
+        this.dockRadiusMatch = dockRadiusMatch;
+        this.liquidGlass = liquidGlass;
         this.nextSunTime = nextSunTime;
         this.seasonalDates = Collections.unmodifiableList(seasonalDates);
         this.latitude = latitude;
@@ -574,6 +580,8 @@ final class Config {
         String radioSource = res.getString(R.string.radio_source).trim();
         boolean settingsOneClick = res.getBoolean(R.bool.settings_one_click);
         int tileScale = res.getInteger(R.integer.tile_scale);
+        boolean dockRadiusMatch = res.getBoolean(R.bool.dock_radius_match);
+        boolean liquidGlass = res.getBoolean(R.bool.liquid_glass);
         boolean weatherPlace = res.getBoolean(R.bool.weather_place), weatherMono = res.getBoolean(R.bool.weather_mono);
         boolean monoTiles = res.getBoolean(R.bool.mono_tiles);
         boolean glassTiles = res.getBoolean(R.bool.glass_tiles);
@@ -715,6 +723,8 @@ final class Config {
             radioSource = string(json, "radio_source", radioSource);
             settingsOneClick = bool(json, "settings_one_click", settingsOneClick);
             tileScale = json.optInt("tile_scale", tileScale);
+            dockRadiusMatch = bool(json, "dock_radius_match", dockRadiusMatch);
+            liquidGlass = bool(json, "liquid_glass", liquidGlass);
             weatherPlace = bool(json, "weather_place", weatherPlace);
             weatherMono = bool(json, "weather_mono", weatherMono);
             monoTiles = bool(json, "mono_tiles", monoTiles);
@@ -841,7 +851,7 @@ final class Config {
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), iconOnlyVpn, heroText, heroCaption, headerBottom,
                 pillLabelsOnly, weatherSource, uiFont, captionPosition, smallPills, heroFont, seasonalScenes, seasonalDates,
                 latitude, longitude, nextSunTime, clockGauge, weatherPlace, weatherMono, monoTiles, glassTiles, Math.max(0, Math.min(120, contentLift)),
-                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar, publicHolidays, clockMono, radioSource, settingsOneClick, tileScale);
+                Math.max(70, Math.min(130, heroLineHeight)), Math.max(0, Math.min(120, dockLift)), clockCalendar, publicHolidays, clockMono, radioSource, settingsOneClick, tileScale, dockRadiusMatch, liquidGlass);
     }
 
     /**

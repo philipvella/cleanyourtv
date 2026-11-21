@@ -250,6 +250,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean monoTiles;
     /** glass_tiles (Config). */
     private final boolean glassTiles;
+    /** liquid_glass (Config): the tiles' glass answers focus (LiquidGlass). */
+    private final boolean liquidGlass;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
     private final List<Entry> items = new ArrayList<>();
@@ -283,6 +285,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.uniformTiles = cfg.uniformTiles;
         this.monoTiles = cfg.monoTiles;
         this.glassTiles = cfg.glassTiles;
+        this.liquidGlass = cfg.liquidGlass;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -490,7 +493,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
         }
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot, monoTiles, glassTiles);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot, monoTiles, glassTiles,
+                liquidGlass);
     }
 
     @Override
@@ -982,7 +986,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion, float restNameAlpha, boolean overshoot, boolean mono, boolean glass) {
+               boolean reducedMotion, float restNameAlpha, boolean overshoot, boolean mono, boolean glass, boolean liquid) {
             super(v);
             this.mono = mono;
             this.glass = glass;
@@ -1008,7 +1012,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             });
             card.setClipToOutline(true);
             glassFill = glass ? new android.graphics.drawable.ColorDrawable(0x52101014) : null;
-            if (glass) card.setForeground(new LiquidGlass(density));
+            if (glass) card.setForeground(new LiquidGlass(density, liquid));
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;

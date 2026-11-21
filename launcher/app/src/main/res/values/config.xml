@@ -291,6 +291,14 @@
          smaller, with more room between them. 100 (the default) keeps them as they are. A theme can set
          "tile_scale". -->
     <integer name="tile_scale">100</integer>
+    <!-- The dock band's corners with the same radius as the app tiles' (true), instead of its own rounder ones
+         (false, the default). A theme can set "dock_radius_match". -->
+    <bool name="dock_radius_match">false</bool>
+    <!-- The dock band and glass_tiles drawn as Liquid Glass, without blur: a lensing rim and inner shade, a light that
+         gathers over the focused tile and follows focus, a soft shadow lifting the band, a faint tint for legibility,
+         tiles that stay quiet at rest and light up with a specular glint when focused, and corners concentric with the
+         tiles' (unless dock_radius_match). Off by default; a theme can set "liquid_glass": true. -->
+    <bool name="liquid_glass">false</bool>
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->

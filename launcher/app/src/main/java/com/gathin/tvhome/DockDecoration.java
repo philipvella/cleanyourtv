@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.RadialGradient;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -34,6 +36,18 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final boolean singleRow;
     /** tile_scale on a single row: the row is clipped to the grid's padding, so the band stops there too. */
     private boolean clampToPadding;
+    /** dock_radius_match: the band's corners take the tiles' radius. */
+    private boolean matchTileRadius;
+    /** liquid_glass: the band drawn as Liquid Glass (drawLiquid). */
+    private boolean liquid;
+    private final Paint tint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint lensRim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint lensShade = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint light = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Matrix lightAt = new Matrix();
+    private final RectF ring = new RectF();
+    private float lensTop = Float.NaN, lensBottom = Float.NaN, lightRadius = -1;
     /** dock_band_all: in a single row, the band runs behind every app instead of the dock apps only. */
     private final boolean bandAll;
 
@@ -65,6 +79,75 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
 
     void setClampToPadding(boolean clamp) {
         clampToPadding = clamp;
+    }
+
+    void setMatchTileRadius(boolean match) {
+        matchTileRadius = match;
+    }
+
+    void setLiquid(boolean on) {
+        liquid = on;
+        tint.setColor(0x1F000000);
+        lensRim.setStyle(Paint.Style.STROKE);
+        lensRim.setStrokeWidth(1.5f * density);
+        lensShade.setStyle(Paint.Style.STROKE);
+        lensShade.setStrokeWidth(3f * density);
+        shadow.setStyle(Paint.Style.STROKE);
+    }
+
+    /**
+     * liquid_glass: the band as Apple's Liquid Glass, without blur. A faint dark tint under the frost keeps the tiles
+     * legible on any wallpaper; the edge is a lens (a rim bright where the light from above meets it, fading down the
+     * sides, catching it again at the bottom), with an inner shade that gives the pane its thickness; a soft light
+     * gathers on the band above the focused tile and follows focus along it; and a faint shadow lifts the whole
+     * band off the wallpaper. Corners concentric with the tiles' (the caller passes the radius). Nothing is made
+     * per frame: the gradients are rebuilt only when the band's height changes, and the light is moved with a matrix.
+     */
+    private void drawLiquid(Canvas c, RecyclerView parent, float r, float cardWidth) {
+        if (rect.top != lensTop || rect.bottom != lensBottom) {
+            lensTop = rect.top;
+            lensBottom = rect.bottom;
+            band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x2EFFFFFF, 0x0AFFFFFF,
+                    Shader.TileMode.CLAMP));
+            lensRim.setShader(new LinearGradient(0, rect.top, 0, rect.bottom,
+                    new int[]{0xA6FFFFFF, 0x26FFFFFF, 0x12FFFFFF, 0x47FFFFFF}, new float[]{0f, 0.3f, 0.72f, 1f},
+                    Shader.TileMode.CLAMP));
+            lensShade.setShader(new LinearGradient(0, rect.bottom - 10 * density, 0, rect.bottom,
+                    0x00000000, 0x29000000, Shader.TileMode.CLAMP));
+        }
+        // The shadow first: one soft ring just outside the band, a little lower, lifting it off the wallpaper.
+        float grow = 4 * density;
+        shadow.setStrokeWidth(grow);
+        shadow.setColor(0x14000000);
+        ring.set(rect.left, rect.top + density * 2, rect.right, rect.bottom + density * 2);
+        ring.inset(-grow / 2, -grow / 2);
+        c.drawRoundRect(ring, r + grow / 2, r + grow / 2, shadow);
+        c.drawRoundRect(rect, r, r, tint);
+        c.drawRoundRect(rect, r, r, band);
+        // The light over the focused tile, gathered along the band's top edge.
+        View focused = parent.getFocusedChild();
+        if (focused != null) {
+            float want = Math.max(cardWidth, 40 * density) * 1.3f;
+            if (want != lightRadius) {
+                lightRadius = want;
+                light.setShader(new RadialGradient(0, 0, want, new int[]{0x38FFFFFF, 0x0FFFFFFF, 0x00FFFFFF},
+                        new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+            }
+            float fx = focused.getLeft() + focused.getWidth() / 2f + focused.getTranslationX();
+            lightAt.setTranslate(fx, rect.top);
+            light.getShader().setLocalMatrix(lightAt);
+            // Only the light's own patch is filled, not the whole band: cheaper on the TV's GPU.
+            c.save();
+            c.clipRect(fx - want, rect.top, fx + want, Math.min(rect.bottom, rect.top + want));
+            c.drawRoundRect(rect, r, r, light);
+            c.restore();
+        }
+        float in = lensShade.getStrokeWidth() / 2;
+        ring.set(rect.left + in, rect.top + in, rect.right - in, rect.bottom - in);
+        c.drawRoundRect(ring, r - in, r - in, lensShade);
+        in = lensRim.getStrokeWidth() / 2;
+        ring.set(rect.left + in, rect.top + in, rect.right - in, rect.bottom - in);
+        c.drawRoundRect(ring, r - in, r - in, lensRim);
     }
 
     /** Concentric corners: the band's radius is the tiles' radius plus the band's padding around them. */
@@ -126,7 +209,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             // The same 14dp all round the centred row, with corners concentric with the tiles'.
             rect.inset(-pad, -pad);
             rect.bottom += namesRoom;
-            float r = radiusPx(AppAdapter.cornerRadius(cardWidth, density), pad);
+            float r = matchTileRadius ? AppAdapter.cornerRadius(cardWidth, density)
+                    : radiusPx(AppAdapter.cornerRadius(cardWidth, density), pad);
+            if (liquid) {
+                drawLiquid(c, parent, r, cardWidth);
+                return;
+            }
             if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
                 band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,
                         Shader.TileMode.CLAMP));
@@ -165,6 +253,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             rect.right = Math.min(rect.right, parent.getWidth() - density);
         }
         rect.bottom += namesRoom;
+        if (matchTileRadius) radius = AppAdapter.cornerRadius(cardWidth, density);
+        if (liquid) {
+            drawLiquid(c, parent, radius, cardWidth);
+            return;
+        }
         if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
             // The pills' glass (pill_bg: white, 18% fading to 8%), a little fainter over this much larger area.
             band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,

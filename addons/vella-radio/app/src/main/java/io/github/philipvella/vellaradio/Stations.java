@@ -139,6 +139,7 @@ final class Stations {
             // Global's own free streams, as Global Player plays them.
             global("classic_fm", "Classic FM", "ClassicFM"),
             global("classic_fm_calm", "Classic FM Calm", "ClassicFMCalm"),
+            global("classic_fm_christmas", "Classic FM Christmas", "ClassicFMXmas"),
             global("gold", "Gold", "Gold"),
             global("heart", "Heart", "HeartUK"),
             global("heart_70s", "Heart 70s", "Heart70s"),
@@ -156,6 +157,7 @@ final class Stations {
             global("smooth_chill", "Smooth Chill", "SmoothChill"),
             global("smooth_country", "Smooth Country", "SmoothCountry"),
             global("smooth_70s", "Smooth 70s", "Smooth70s"),
+            global("smooth_christmas", "Smooth Christmas", "SmoothXmas"),
             global("lbc", "LBC", "LBCUK"),
             global("lbc_news", "LBC News", "LBCNewsUK"),
             global("radio_x", "Radio X", "RadioXUK"),

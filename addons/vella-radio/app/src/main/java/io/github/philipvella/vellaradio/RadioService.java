@@ -78,7 +78,7 @@ public final class RadioService extends Service implements AudioManager.OnAudioF
                 else play(Radio.shown(this));
                 break;
             case "play":
-                Stations.Station s = Stations.byId(intent.getStringExtra(STATION));
+                Stations.Station s = MyStations.find(this, intent.getStringExtra(STATION));
                 play(s != null ? s : Radio.shown(this));
                 break;
             default:

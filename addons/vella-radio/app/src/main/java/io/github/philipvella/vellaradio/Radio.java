@@ -32,7 +32,7 @@ final class Radio {
 
     /** The station Home shows: the one playing, or just paused, else the default. */
     static Stations.Station shown(Context ctx) {
-        Stations.Station now = Stations.byId(stationId);
+        Stations.Station now = MyStations.find(ctx, stationId);
         boolean recent = System.currentTimeMillis() - changedAt < RESUME_MS;
         if (now != null && (!STOPPED.equals(state) || recent)) return now;
         return defaultStation(ctx);
@@ -40,7 +40,7 @@ final class Radio {
 
     static Stations.Station defaultStation(Context ctx) {
         return Stations.defaultFor(prefs(ctx).getString("default", ""), ctx.getString(R.string.default_station),
-                latitude(ctx), longitude(ctx));
+                latitude(ctx), longitude(ctx), id -> MyStations.find(ctx, id), MyStations.hidden(ctx));
     }
 
     static void setDefault(Context ctx, String id) {

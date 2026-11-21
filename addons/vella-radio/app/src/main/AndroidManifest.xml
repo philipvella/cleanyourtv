@@ -6,7 +6,8 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
-    <!-- The stations' public streams (BBC, Global, Virgin, Times Radio). Nothing else is sent anywhere. -->
+    <!-- The stations' public streams (BBC, Global, News UK and the ones added from the directory), and the search of
+         Radio Browser's free station directory, which gets only what is typed. Nothing else is sent anywhere. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- The radio keeps playing while you browse Home: a media-playback foreground service, only while it plays. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -39,7 +40,8 @@
             </intent-filter>
         </service>
 
-        <!-- The stations near the TV and the national ones; hold OK to make one the default. Back returns to Home. -->
+        <!-- The stations added on the TV, those near it and the national ones; hold OK to make one the default, Menu
+             for more. Back returns to Home. -->
         <activity
             android:name=".StationsActivity"
             android:exported="true"
@@ -50,5 +52,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Find more stations in Radio Browser's directory and add them to the list; opened from the list only. -->
+        <activity
+            android:name=".SearchActivity"
+            android:exported="false"
+            android:label="Find stations"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"
+            android:windowSoftInputMode="stateHidden|adjustNothing"
+            tools:ignore="HardcodedText" />
     </application>
 </manifest>

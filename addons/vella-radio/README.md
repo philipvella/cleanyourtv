@@ -12,14 +12,23 @@ Home's bottom strip. OK plays or stops it; holding OK opens the station list.
   finds no track in Global's AAC streams. Virgin Radio streams only AAC, so it is not here. Bauer's stations
   (Absolute, Kiss, Magic, Greatest Hits, Planet Rock and others) are not here: Bauer streams them only through its own
   app.
-- **Default station:** the one OK on Home plays. Hold OK (or press Menu) on a station in the list to make it the
-  default. Before that, it is `default_station` in `options.xml`, or the nearest local station when that is empty.
+- **Find more stations:** the first row of the list opens a search of [Radio Browser](https://www.radio-browser.info),
+  a free community directory of stations' own public streams. Type a name with the TV's keyboard (with nothing typed
+  it lists the most played), in the UK or anywhere; OK on a result adds it to **My stations** at the top of the list,
+  and OK again takes it off. Only MP3 streams on https are shown, as the TV's player finds no track in AAC streams.
+  The search sends Radio Browser only what you typed (and "GB" for the UK), with a plain `VellaRadio/1.0` User-Agent.
+- **Removing stations:** press Menu on a station for *Make default* or *Remove from list*. A station you added is
+  forgotten; a built-in one is hidden, and *Restore removed stations* at the bottom of the list brings them all back.
+- **Default station:** the one OK on Home plays. Hold OK on a station in the list (or press Menu, then *Make
+  default*) to make it the default. Before that, it is `default_station` in `options.xml`, or the nearest local
+  station when that is empty. When the default is removed from the list, the next in that line takes over.
 - **When it stops:** when you press OK again, when another app plays sound (a video starts), and when the TV goes to
   standby. It goes quiet while the assistant listens.
 
-Permissions: `INTERNET` for the streams, and `FOREGROUND_SERVICE` (with `FOREGROUND_SERVICE_MEDIA_PLAYBACK`) so it
-keeps playing while you browse Home. There's no background work while it is stopped, and nothing is sent anywhere:
-the place's latitude and longitude only pick the local stations, on the TV.
+Permissions: `INTERNET` for the streams and the station search, and `FOREGROUND_SERVICE` (with `FOREGROUND_SERVICE_MEDIA_PLAYBACK`) so it
+keeps playing while you browse Home. There's no background work while it is stopped, and nothing else is sent anywhere:
+the place's latitude and longitude only pick the local stations, on the TV, and the search runs only while its screen
+is open.
 
 Build and install:
 

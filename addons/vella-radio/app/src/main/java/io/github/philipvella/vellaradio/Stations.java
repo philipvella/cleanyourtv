@@ -1,8 +1,11 @@
 package io.github.philipvella.vellaradio;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * The free stations: the BBC's local and nations' stations, each with the rough middle and reach of its area, and the
@@ -21,8 +24,16 @@ final class Stations {
         final String id, name, owner, url;
         /** Local stations: the middle of the area and how far it reaches, km. National: NaN. */
         final double lat, lon, reachKm;
+        /** Added on the TV from the station directory (MyStations), not built in. */
+        final boolean online;
 
         private Station(String id, String name, String owner, String url, double lat, double lon, double reachKm) {
+            this(id, name, owner, url, lat, lon, reachKm, false);
+        }
+
+        private Station(String id, String name, String owner, String url, double lat, double lon, double reachKm,
+                boolean online) {
+            this.online = online;
             this.id = id;
             this.name = name;
             this.owner = owner;
@@ -41,6 +52,14 @@ final class Stations {
             return url.endsWith(".m3u8");
         }
     }
+
+    /** A station added on the TV from the directory: national, run by whoever, its name kept as it is. */
+    static Station online(String id, String name, String url) {
+        return new Station(id, name, ONLINE, url, Double.NaN, Double.NaN, Double.NaN, true);
+    }
+
+    /** The owner line for the stations added on the TV. */
+    static final String ONLINE = "Online";
 
     private static Station bbcLocal(String id, String name, double lat, double lon, double reachKm) {
         return new Station(id, name, "BBC", BBC + id + ".m3u8", lat, lon, reachKm);
@@ -176,7 +195,7 @@ final class Stations {
      */
     static String shortName(Station s) {
         String n = s.name;
-        if (!n.startsWith("BBC ")) return n;
+        if (s.online || !n.startsWith("BBC ")) return n;
         n = n.substring(4);
         if (n.startsWith("Radio 6 ")) return n.substring(6);
         if (!s.local()) return n.startsWith("Radio ") && !Character.isDigit(n.charAt(6)) ? n.substring(6) : n;
@@ -208,13 +227,21 @@ final class Stations {
 
     /** The station OK on Home plays: the one chosen on the TV, else the build's default, else the nearest local, else Radio 2. */
     static Station defaultFor(String chosen, String built, double lat, double lon) {
-        Station s = byId(chosen);
-        if (s == null) s = byId(built);
-        if (s == null) {
-            List<Station> near = near(lat, lon);
-            s = near.isEmpty() ? byId("bbc_radio_two") : near.get(0);
+        return defaultFor(chosen, built, lat, lon, Stations::byId, Collections.emptySet());
+    }
+
+    /**
+     * The same, finding stations with {@code find} (the TV's own added ones too) and passing over the ones removed
+     * from the list ({@code hidden}); Radio 2 is the last resort even when it was removed.
+     */
+    static Station defaultFor(String chosen, String built, double lat, double lon, Function<String, Station> find,
+            Set<String> hidden) {
+        for (String id : new String[] {chosen, built}) {
+            Station s = id == null ? null : find.apply(id.trim());
+            if (s != null && !hidden.contains(s.id)) return s;
         }
-        return s;
+        for (Station s : near(lat, lon)) if (!hidden.contains(s.id)) return s;
+        return byId("bbc_radio_two");
     }
 
     /** Great-circle distance, km. */
